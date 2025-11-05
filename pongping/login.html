@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - PingPong Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg1:#000010; --bg2:#190033; --card-bg: rgba(4,6,12,0.75); --accent:#9ef0ff; --muted:#bfcbd1; }
+    html,body{height:100%;}
+    body { font-family: 'Press Start 2P', monospace; background: linear-gradient(180deg,var(--bg1),var(--bg2)); color:#fff; height:100vh; display:flex; align-items:center; justify-content:center; margin:0; }
+    .card { width:100%; max-width:520px; background: var(--card-bg); border:1px solid rgba(158,240,255,0.06); padding:20px; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); position:relative; }
+    h1 { font-family: 'Orbitron', 'Press Start 2P', monospace; font-size:20px; color:var(--accent); margin:6px 0 12px; text-align:center; text-shadow: 0 0 10px rgba(158,240,255,0.12); }
+    label { display:block; font-size:11px; color:var(--accent); margin-bottom:6px; }
+    input { width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:#07070b; color:#fff; font-family:inherit; }
+    .row { margin-bottom:12px; }
+    .controls { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+    .btn { padding:10px 14px; border-radius:8px; background: linear-gradient(90deg, rgba(158,240,255,0.12), rgba(0,255,136,0.08)); border:1px solid rgba(158,240,255,0.12); color:#00110a; cursor:pointer; font-weight:700; }
+    #btn-close-x { position:absolute; right:12px; top:10px; background:transparent; border:none; color:var(--accent); font-size:18px; cursor:pointer; padding:6px; }
+    #status { margin-top:10px; font-size:12px; color:var(--accent); text-align:center; min-height:18px; }
+    .muted{ color:var(--muted); font-size:11px; text-align:center; margin-top:8px; }
+    @media (max-width:420px){ .card{ padding:14px } h1{ font-size:16px } }
+  </style>
+</head>
+<body>
+  <div class="card" role="dialog" aria-modal="true" aria-label="Login">
+    <h1>🔑 PingPong Pro — Login</h1>
+
+    <div class="row"><label for="username">Username</label><input id="username" type="text" autocomplete="username" /></div>
+    <div class="row"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" /></div>
+
+    <div class="controls">
+      <div style="flex:1"></div>
+      <div><button id="btn-submit" class="btn">LOGIN</button></div>
+    </div>
+
+    <button id="btn-close-x" title="Close">✕</button>
+    <div id="status" aria-live="polite"></div>
+    <div class="muted">Login menyimpan session lokal (tidak aman untuk produksi).</div>
+  </div>
+
+<script>
+(function(){
+  const u = document.getElementById('username');
+  const p = document.getElementById('password');
+  const submit = document.getElementById('btn-submit');
+  const btnCloseX = document.getElementById('btn-close-x');
+  const status = document.getElementById('status');
+
+  function showStatus(msg, isError){ status.textContent = msg || ''; status.style.color = isError ? '#ff8a8a' : ''; }
+
+  submit.addEventListener('click', async ()=>{
+    const username = (u.value||'').trim();
+    const password = (p.value||'');
+    if (!username || !password) { showStatus('Isi username dan password', true); return; }
+    showStatus('Memproses...');
+    try {
+      const res = await fetch('login.php', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
+      const j = await res.json();
+      if (j && j.success) {
+        try { localStorage.setItem('playerName', j.username || username); localStorage.setItem('playerId', j.user_id || 0); } catch(e){}
+        try {
+          const target = (window.parent && window.parent !== window) ? window.parent : window.opener;
+          if (target && typeof target.postMessage === 'function') {
+            target.postMessage({ type:'account-updated', playerName: j.username || username }, '*');
+            target.postMessage({ type:'request-close' }, '*');
+          }
+        } catch(e){}
+        showStatus('Login berhasil');
+      } else {
+        showStatus((j && j.message) || 'Login gagal', true);
+      }
+    } catch(e) { showStatus('Terjadi kesalahan server', true); }
+  });
+
+  if (btnCloseX) btnCloseX.addEventListener('click', ()=>{
+    try { const target = (window.parent && window.parent !== window) ? window.parent : window.opener; if (target && typeof target.postMessage === 'function') target.postMessage({ type:'request-close' }, '*'); else window.close(); } catch(e){ try{ window.close(); }catch(e){} }
+  });
+
+  window.addEventListener('message', (ev)=>{ try { if (ev.data && ev.data.type === 'request-focus') u.focus(); } catch(e){} });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Account - PingPong Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- use shared project stylesheet to match index.html -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+  /* === Base === */
+  html,body {
+    height:100%;
+    margin:0;
+    padding:0;
+    font-family:'Press Start 2P',monospace;
+  }
+  body {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    background:linear-gradient(to top, #000010, #190033, #38005a, #5e00a1);
+    background-size:100% 400%;
+  }
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size:8px 8px;
+    pointer-events:none;
+    mix-blend-mode:overlay;
+    opacity:0.9;
+  }
+
+  /* === Modal === */
+  .page-wrap{width:100%;max-width:920px;padding:20px}
+  .account-modal{
+    width:100%;max-width:520px;margin:0 auto;
+    background:linear-gradient(180deg,rgba(0,0,0,0.85),rgba(0,0,0,0.6));
+    border:3px solid rgba(212, 22, 165, 0.9);
+    padding:24px;
+    border-radius:16px;
+    color:#ffffff;
+    box-shadow:0 12px 40px rgba(0,0,0,0.6);
+    transform:translateY(-6px);
+  }
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .modal-title{color:#ffffff;font-size:16px;letter-spacing:1px}
+  .close-x{
+    background:transparent;border:none;color:#fff;
+    font-size:20px;cursor:pointer;
+    transition:color 0.2s ease;
+  }
+  .close-x:hover{color:#ff00ff}
+
+  /* === Fields === */
+  .account-body{padding:12px;border-radius:8px}
+  .field{margin-bottom:14px;font-size:14px;display:flex;flex-direction:column;gap:6px}
+  .field strong{color:#fff;font-size:12px}
+  .value{
+    background:#111;padding:10px 12px;
+    border-radius:8px;
+    border:2px solid rgba(240,0,240,0.08);
+    color:#fff;word-break:break-word;
+    font-size:12px;
+  }
+
+  /* === Buttons === */
+  .btn{
+    padding:10px 16px;
+    border-radius:8px;
+    border:2px solid transparent;
+    font-family:'Press Start 2P',monospace;
+    cursor:pointer;
+    font-size:12px;
+    transition:transform 0.15s ease, opacity 0.2s ease;
+  }
+  .btn:hover{transform:translateY(-2px);opacity:0.9}
+
+  .btn-neon-green{
+    background:linear-gradient(90deg,#06d906,#00ff66);
+    color:#002200;
+    border:1px solid rgba(0,255,102,0.85);
+    box-shadow:0 0 14px rgba(0,255,102,0.85);
+  }
+  .btn-neon-red{
+    background:linear-gradient(90deg,#ff3b3b,#ff7373);
+    color:#000;
+    border:1px solid rgba(255,80,80,0.9);
+    box-shadow:0 0 14px rgba(255,80,80,0.9);
+  }
+  .btn-ghost,.back-btn{
+    background:#222;
+    border:2px solid rgba(255,255,255,0.06);
+    color:#fff;
+  }
+
+  /* Password toggle */
+  #toggle-show{
+    padding:6px 10px;
+    font-size:10px;
+    min-width:58px;
+  }
+  #toggle-show:hover{
+    border-color:#ff00ff;
+    color:#ff00ff;
+  }
+
+  /* === Inline forms === */
+  .inline-form input{
+    padding:10px 12px;
+    border-radius:6px;
+    border:2px solid rgba(255,255,255,0.08);
+    background:#111;color:#fff;
+    outline:none;
+    font-size:12px;
+  }
+  .inline-form input:focus{border-color:#ff00ff}
+  .inline-form{
+    display:none;flex-direction:column;gap:8px;margin-top:8px
+  }
+  .inline-actions{display:flex;gap:8px;justify-content:flex-end}
+
+  /* === Layout controls === */
+  .controls-row{
+    display:flex;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap;
+  }
+  .controls-row > div{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  .small-note{
+    margin-top:16px;
+    font-size:10px;
+    color:rgba(255,255,255,0.7);
+    line-height:1.4;
+  }
+
+  /* === Responsive === */
+  @media (max-width:480px){
+    .account-modal{margin:12px;padding:16px}
+    .controls-row{flex-direction:column;gap:10px}
+    .btn{width:100%}
+  }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="account-modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div class="modal-title">Account</div>
+        <div>
+          <button id="back-x" class="close-x" title="Kembali">✕</button>
+        </div>
+      </div>
+
+      <div class="account-body">
+        <div class="field">
+          <strong>Username</strong>
+          <div class="value" id="display-username">Guest</div>
+        </div>
+
+        <div class="field">
+          <strong>Password</strong>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="value" id="display-password">********</div>
+            <button id="toggle-show" class="btn btn-ghost">Show</button>
+          </div>
+        </div>
+
+        <!-- change username form -->
+        <div id="form-change-username" class="inline-form">
+          <input id="input-new-username" placeholder="New username" />
+          <div class="inline-actions">
+            <button id="save-username" class="btn btn-neon-green">Save</button>
+            <button id="cancel-username" class="btn btn-ghost">Cancel</button>
+          </div>
+        </div>
+
+        <!-- change password form -->
+        <div id="form-change-password" class="inline-form">
+          <input id="input-current-password" type="password" placeholder="Current password (required if logged in)" />
+          <input id="input-new-password" type="password" placeholder="New password" />
+          <input id="input-new-password-confirm" type="password" placeholder="Confirm password" />
+          <div class="inline-actions">
+            <button id="save-password" class="btn btn-neon-green">Save</button>
+            <button id="cancel-password" class="btn btn-ghost">Cancel</button>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <div style="display:flex;gap:8px">
+            <button id="btn-change-username" class="btn btn-neon-green">Change Username</button>
+            <button id="btn-change-password" class="btn btn-neon-green">Change Password</button>
+          </div>
+
+          <div style="display:flex;gap:8px">
+            <button id="btn-logout" class="btn btn-neon-red">Logout</button>
+           
+          </div>
+        </div>
+
+        <div class="small-note">Perubahan disimpan lokal. Untuk sinkron dengan server, gunakan fitur login/signup.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Populate from localStorage
+    const displayUser = document.getElementById('display-username');
+    const displayPw = document.getElementById('display-password');
+    const toggleShow = document.getElementById('toggle-show');
+    const backX = document.getElementById('back-x');
+    const closeBtn = document.getElementById('btn-close');
+
+    function refresh() {
+      const name = localStorage.getItem('playerName') || 'Guest';
+      const pw = localStorage.getItem('savedPassword') || '';
+      displayUser.textContent = name;
+      displayPw.textContent = pw ? '********' : '********';
+      try{
+        const ab = window.parent?.document?.getElementById('account-btn');
+        if(ab) ab.textContent = name;
+      }catch(e){}
+    }
+
+    refresh();
+
+    // Show/Hide password
+    toggleShow.addEventListener('click', ()=>{
+      const pw = localStorage.getItem('savedPassword') || '';
+      if(!pw) return;
+      if(toggleShow.textContent === 'Show'){
+        displayPw.textContent = pw;
+        toggleShow.textContent = 'Hide';
+      } else {
+        displayPw.textContent = '********';
+        toggleShow.textContent = 'Show';
+      }
+    });
+
+    // Toggle inline forms
+    const btnChangeUsername = document.getElementById('btn-change-username');
+    const btnChangePassword = document.getElementById('btn-change-password');
+    const formUsername = document.getElementById('form-change-username');
+    const formPassword = document.getElementById('form-change-password');
+
+    btnChangeUsername.addEventListener('click', ()=>{
+      formUsername.style.display='flex';
+      document.getElementById('input-new-username').focus();
+    });
+    document.getElementById('cancel-username').addEventListener('click', ()=>{
+      formUsername.style.display='none';
+      document.getElementById('input-new-username').value='';
+    });
+    document.getElementById('save-username').addEventListener('click', async ()=>{
+      const v = (document.getElementById('input-new-username').value||'').trim();
+      if(!v){ alert('Masukkan username baru'); return; }
+
+      const storedId = parseInt(localStorage.getItem('playerId') || '0', 10) || 0;
+      if (storedId) {
+        try {
+          const resp = await fetch('change_username.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ user_id: storedId, new_username: v })
+          });
+          const j = await resp.json();
+          if (j && j.success) {
+            try{ localStorage.setItem('playerName', v); } catch(e){}
+            formUsername.style.display='none';
+            document.getElementById('input-new-username').value='';
+            refresh();
+            alert('Username diperbarui (server)');
+          } else {
+            alert('Gagal mengubah username: ' + (j.message || 'unknown'));
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Terjadi error saat mengubah username');
+        }
+        return;
+      }
+
+      localStorage.setItem('playerName', v);
+      formUsername.style.display='none';
+      document.getElementById('input-new-username').value='';
+      refresh();
+      alert('Username diperbarui (lokal)');
+    });
+
+    btnChangePassword.addEventListener('click', ()=>{
+      formPassword.style.display='flex';
+      document.getElementById('input-current-password').focus();
+    });
+    document.getElementById('cancel-password').addEventListener('click', ()=>{
+      formPassword.style.display='none';
+      document.getElementById('input-current-password').value='';
+      document.getElementById('input-new-password').value='';
+      document.getElementById('input-new-password-confirm').value='';
+    });
+    document.getElementById('save-password').addEventListener('click', async ()=>{
+      const cur = document.getElementById('input-current-password').value||'';
+      const a = document.getElementById('input-new-password').value||'';
+      const b = document.getElementById('input-new-password-confirm').value||'';
+      if(!a){ alert('Masukkan password baru'); return; }
+      if(a !== b){ alert('Password tidak cocok'); return; }
+
+      const storedId = parseInt(localStorage.getItem('playerId') || '0', 10) || 0;
+      if (storedId) {
+        try {
+          const resp = await fetch('change_password.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ user_id: storedId, current_password: cur, new_password: a })
+          });
+          const j = await resp.json();
+          if (j && j.success) {
+            try { localStorage.setItem('savedPassword', a); } catch(e){}
+            formPassword.style.display='none';
+            document.getElementById('input-current-password').value='';
+            document.getElementById('input-new-password').value='';
+            document.getElementById('input-new-password-confirm').value='';
+            refresh();
+            alert('Password berhasil diubah (server)');
+          } else {
+            alert('Gagal mengubah password: ' + (j.message || 'unknown'));
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Terjadi error saat mengubah password');
+        }
+        return;
+      }
+
+      try { localStorage.setItem('savedPassword', a); } catch(e){}
+      formPassword.style.display='none';
+      document.getElementById('input-current-password').value='';
+      document.getElementById('input-new-password').value='';
+      document.getElementById('input-new-password-confirm').value='';
+      refresh();
+      alert('Password tersimpan lokal (user belum login ke server)');
+    });
+
+    // Logout clears local storage keys used by account and returns to menu
+    document.getElementById('btn-logout').addEventListener('click', ()=>{
+      localStorage.removeItem('playerName');
+      localStorage.removeItem('playerId');
+      localStorage.removeItem('savedPassword');
+      refresh();
+      alert('Logged out');
+      window.location.href = 'index.html';
+    });
+
+    // Close/back handlers
+    function goBack(){ window.location.href = 'index.html'; }
+    backX.addEventListener('click', goBack);
+    closeBtn.addEventListener('click', ()=>{ window.location.href = 'index.html'; });
+  </script>
+</body>
+</html>

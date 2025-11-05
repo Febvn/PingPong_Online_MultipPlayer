@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PingPong Pro - Menu</title>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    html, body {
+      overflow: hidden;
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Press Start 2P', monospace;
+      background: linear-gradient(to top, #000010, #190033, #38005a, #5e00a1);
+      background-size: 100% 400%;
+      animation: waves 10s infinite linear;
+      color: #0ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-shadow: 0 0 2px #0ff, 0 0 5px #0ff;
+      position: relative;
+      overflow: hidden;
+      z-index: 0;
+      height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 8px 8px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes waves {
+      0% { background-position: 0% 100%; }
+      50% { background-position: 0% 80%; }
+      100% { background-position: 0% 100%; }
+    }
+
+    .close-x{background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;transition:color 0.2s ease}
+    .close-x:hover{color:#ff00ff}
+
+    /* menu-screen styling copied from index.html */
+    #menu-screen{
+      text-align: center;
+      margin-top: 5vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      z-index: 2;
+      animation: fadein 1s ease-in;
+      padding: 28px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.04);
+      width: 92%;
+      max-width: 780px;
+    }
+
+    #menu-screen h1 {
+      font-size: 32px;
+      font-family: 'Orbitron', sans-serif;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+    }
+
+    #menu-screen button {
+      text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+      padding: 16px 24px;
+      font-size: 14px;
+      font-family: 'Press Start 2P', monospace;
+      width: 240px;
+      background: #000;
+      color: #fff;
+      border: 2px solid #f0f;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #f0f, 0 0 20px rgb(0, 0, 0);
+      transition: all 0.3s ease;
+    }
+
+    #menu-screen button:hover {
+      background: #f0f;
+      color: #000;
+      transform: scale(1.05);
+    }
+
+    #menu-screen button:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 5px #0ff inset;
+    }
+
+    #login-buttons {
+      display: flex;
+      width: 240px;
+      gap: 10px;
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+
+    #login-buttons button {
+      flex: 1;
+      padding: 12px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      background: #000;
+      color: #fff;
+      border: 2px solid #f0f;
+      border-radius: 4px;
+      box-shadow: 0 0 6px #f0f;
+      cursor: pointer;
+    }
+    #login-buttons button:hover {
+      background: #f0f;
+      color: #000;
+      transform: scale(1.03);
+    }
+
+    .dropdown {
+      position: relative;
+      width: 240px;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      flex-direction: column;
+      background: #000;
+      border: 2px solid #f0f;
+      border-top: none;
+      z-index: 3;
+      box-shadow: 0 0 10px #f0f;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: flex;
+    }
+
+    .dropdown-content button,
+    .dropdown-content input[type=range],
+    .dropdown-content label {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      background: #000;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 10px;
+    }
+
+    .dropdown-content button:hover {
+      background: #f0f;
+      color: #000;
+    }
+
+    .range-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .range-group input[type=number] {
+      width: 60px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 4px;
+      background: #000;
+      color: #fff;
+      border: 1px solid #f0f;
+      box-shadow: 0 0 5px #f0f;
+      text-align: center;
+    }
+
+    .range-group input[type=number]:hover {
+      border-color: rgb(255, 0, 128);
+      box-shadow: 0 0 8px rgb(255, 0, 119);
+    }
+
+    /* small modal styles for login/signup/leaderboard */
+    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:60}
+    .modal{background:#0b0017;padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);min-width:260px;color:#fff}
+    .modal h2{margin-bottom:8px}
+    .modal input{width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:#111;color:#fff}
+    .modal .actions{display:flex;gap:8px;margin-top:12px}
+
+    .note{font-size:11px;color:#9de}
+  </style>
+</head>
+<body>
+  <div id="menu-screen">
+    <h1>🏓 PingPong Pro</h1>
+
+    <div id="login-buttons">
+      <button id="login-btn">Login</button>
+      <button id="signup-btn">Sign Up</button>
+      <button id="account-btn" style="display:none;">Account</button>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
+      <button id="single-btn">PVE (1VS1)</button>
+      <button id="multi-btn">Multiplayer</button>
+      <button id="leaderboard-btn">🏆 Leaderboard</button>
+    </div>
+
+    <div id="settings" style="margin-top:8px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label for="music-volume" style="font-size:12px;color:#9de;margin-right:6px">Music</label>
+        <input id="music-volume" type="range" min="0" max="100" value="70" />
+      </div>
+    </div>
+
+    <div class="note">This is a standalone menu copy of index.html's menu.</div>
+  </div>
+
+  <!-- Audio & overlays -->
+  <audio id="menu-music" src="muscicmenu.mp3" loop preload="auto"></audio>
+
+  <div id="login-container" class="overlay">
+    <div class="modal" id="login-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2>🔑 Login</h2>
+        <button id="login-close" class="close-x">✕</button>
+      </div>
+      <input id="username" placeholder="Username" />
+      <input id="password" type="password" placeholder="Password" />
+      <div class="actions">
+        <button id="login-submit">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="signup-container" class="overlay">
+    <div class="modal" id="signup-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2>🔑 Sign Up</h2>
+        <button id="signup-close" class="close-x">✕</button>
+      </div>
+      <input id="signup-username" placeholder="Username" />
+      <input id="signup-password" type="password" placeholder="Password" />
+      <div class="actions">
+        <button id="signup-submit">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="leaderboard-container" class="overlay">
+    <div class="modal" id="leaderboard-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2>🏆 LEADERBOARD</h2>
+        <button id="leaderboard-close" class="close-x">✕</button>
+      </div>
+      <div id="leaderboard-body">No data</div>
+    </div>
+  </div>
+
+  <script>
+    const menuMusic = document.getElementById('menu-music');
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const leaderboardBtn = document.getElementById('leaderboard-btn');
+
+    function tryPlayMenuMusic(){
+      if (!menuMusic) return;
+      const p = menuMusic.play();
+      if (p && typeof p.then === 'function') p.catch(()=>{
+        const onInteraction = () => { menuMusic.play().catch(()=>{}); window.removeEventListener('click',onInteraction); window.removeEventListener('keydown',onInteraction); };
+        window.addEventListener('click', onInteraction, { once: true });
+        window.addEventListener('keydown', onInteraction, { once: true });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      tryPlayMenuMusic();
+
+      // open modals
+      if (loginBtn) loginBtn.addEventListener('click', ()=> document.getElementById('login-container').style.display='flex');
+      if (signupBtn) signupBtn.addEventListener('click', ()=> document.getElementById('signup-container').style.display='flex');
+      if (leaderboardBtn) leaderboardBtn.addEventListener('click', ()=> document.getElementById('leaderboard-container').style.display='flex');
+
+      // close handlers
+      document.getElementById('login-close').addEventListener('click', ()=> document.getElementById('login-container').style.display='none');
+      document.getElementById('signup-close').addEventListener('click', ()=> document.getElementById('signup-container').style.display='none');
+      document.getElementById('leaderboard-close').addEventListener('click', ()=> document.getElementById('leaderboard-container').style.display='none');
+
+      // basic button stubs
+      const singleBtn = document.getElementById('single-btn'); if (singleBtn) singleBtn.addEventListener('click', ()=> alert('Start PVE in index.html'));
+      const multiBtn = document.getElementById('multi-btn'); if (multiBtn) multiBtn.addEventListener('click', ()=> alert('Multiplayer belum tersedia'));
+
+      // volume slider
+      const vol = document.getElementById('music-volume'); if (vol) vol.addEventListener('input', ()=> { if (menuMusic) menuMusic.volume = (parseInt(vol.value,10)||70)/100 });
+    });
+  </script>
+</body>
+</html>

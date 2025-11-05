@@ -1,0 +1,499 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  overflow: hidden; /* ✅ Mencegah scrollbar muncul */
+}
+
+body {
+  font-family: 'Press Start 2P', monospace;
+  background: linear-gradient(to top, #000010, #190033, #38005a, #5e00a1);
+  background-size: 100% 400%;
+  animation: waves 10s infinite linear;
+  color: #0ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+  text-shadow: 0 0 2px #0ff, 0 0 5px #0ff;
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 8px 8px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes waves {
+  0% { background-position: 0% 100%; }
+  50% { background-position: 0% 80%; }
+  100% { background-position: 0% 100%; }
+}
+
+#game-container {
+  width: 90vw;
+  max-width: 800px;
+  text-align: center;
+  z-index: 2;
+}
+
+#score {
+  font-size: 18px;
+  margin: 10px 0;
+  color: #fff;
+  text-shadow: 0 0 5px #ff00ff;
+}
+
+#arena {
+  position: relative;
+  width: 98%;
+  aspect-ratio: 3 / 2;
+  height: 60vh; /* ✅ Fallback untuk browser lama */
+  background: linear-gradient(135deg, #111, #222);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgb(255, 255, 255);
+  z-index: 2;
+}
+
+#arena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 4px dashed rgb(255, 255, 255);
+  pointer-events: none;
+  box-sizing: border-box;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease; /* ✅ Tambah efek */
+}
+
+#arena.player-score::before {
+  border-right-color: red;
+}
+
+#arena.ai-score::before {
+  border-left-color: red;
+}
+
+.paddle {
+  position: absolute;
+  width: 5%;
+  height: 25%;
+  background: #ff0;
+  border-radius: 4px;
+  box-shadow: 0 0 8px #ff0;
+  z-index: 3; /* ✅ Pastikan paddle di atas background */
+}
+
+.player {
+  left: 0;
+  top: 40%;
+}
+
+.ai {
+  right: 0;
+  top: 40%;
+}
+
+#ball {
+  position: absolute;
+  width: 4%;
+  height: 6%;
+  background: #f0f;
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px #f0f;
+  z-index: 3; /* ✅ Pastikan bola di atas */
+}
+
+/* === CONTROLS === */
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+#controls button {
+  padding: 12px 24px;
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  background: #000;
+  color: #0f0;
+  border: 2px solid #0f0;
+  border-radius: 6px;
+  box-shadow: 0 0 10px #0f0;
+  cursor: pointer;
+  transition: all 0.3s ease; /* ✅ Transisi lebih smooth */
+}
+
+#controls button:active {
+  transform: scale(0.95);
+}
+
+/* === MENU SCREEN === */
+#menu-screen {
+  text-align: center;
+  margin-top: 5vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  z-index: 2;
+  animation: fadein 1s ease-in;
+}
+
+#menu-screen h1 {
+  font-size: 32px;
+  font-family: 'Orbitron', sans-serif;
+  color: #fff;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+}
+
+#menu-screen button {
+  text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+  padding: 16px 24px;
+  font-size: 14px;
+  font-family: 'Press Start 2P', monospace;
+  width: 240px;
+  background: #000;
+  color: #fff;
+  border: 2px solid #f0f;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 10px #f0f, 0 0 20px rgb(0, 0, 0);
+  transition: all 0.3s ease;
+}
+
+#menu-screen button:hover {
+  background: #f0f;
+  color: #000;
+  transform: scale(1.05);
+}
+
+#menu-screen button:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 5px #0ff inset;
+}
+
+#login-buttons {
+  display: flex;
+  width: 240px;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+#login-buttons button {
+  flex: 1;
+  padding: 12px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  background: #000;
+  color: #fff;
+  border: 2px solid #f0f;
+  border-radius: 4px;
+  box-shadow: 0 0 6px #f0f;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#login-buttons button:hover {
+  background: #f0f;
+  color: #000;
+  transform: scale(1.03);
+}
+
+/* === DROPDOWN === */
+.dropdown {
+  position: relative;
+  width: 240px;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  flex-direction: column;
+  background: #000;
+  border: 2px solid #f0f;
+  border-top: none;
+  z-index: 3;
+  box-shadow: 0 0 10px #f0f;
+}
+
+.dropdown:hover .dropdown-content {
+  /* disabled: dropdowns should not open on hover; use the .open class + JS toggle */
+  display: none !important;
+}
+
+/* Explicit open class rule: JS toggles this class to show the menu */
+.dropdown.open .dropdown-content {
+  display: flex !important;
+  z-index: 1000;
+}
+
+.dropdown-content button,
+.dropdown-content input[type=range],
+.dropdown-content label {
+  display: block;
+  width: 100%;
+  margin: 5px 0;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  background: #000;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 10px;
+}
+
+.dropdown-content button:hover {
+  background: #f0f;
+  color: #000;
+}
+
+.dropdown-content input[type=range] {
+  margin-top: 5px;
+}
+
+/* Make multiplayer local button match the main Multiplayer button sizing */
+#multi-btn {
+  padding: 12px 24px;
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  background: #000;
+  color: #0f0;
+  border: 2px solid #0f0;
+  border-radius: 6px;
+  box-shadow: 0 0 10px #0f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#multi-local-btn {
+  padding: 12px 24px;
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  background: #000;
+  color: #fff; /* keep contrast for dropdown */
+  border: 2px solid #f0f;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(240,240,255,0.06);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* === Difficulty Buttons === */
+.difficulty-btn.easy {
+  background: #002e00;
+  color: #0f0;
+  border-top: 1px solid #0f0;
+  box-shadow: 0 0 6px #0f0;
+}
+.difficulty-btn.easy:hover {
+  background: #0f0;
+  color: #000;
+}
+
+.difficulty-btn.medium {
+  background: #2e2e00;
+  color: #ff0;
+  border-top: 1px solid #ff0;
+  box-shadow: 0 0 6px #ff0;
+}
+.difficulty-btn.medium:hover {
+  background: #ff0;
+  color: #000;
+}
+
+.difficulty-btn.hard {
+  background: #2e0000;
+  color: #f00;
+  border-top: 1px solid #f00;
+  box-shadow: 0 0 6px #f00;
+}
+.difficulty-btn.hard:hover {
+  background: #f00;
+  color: #000;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  #arena {
+    aspect-ratio: 4/3;
+  }
+  .paddle {
+    width: 8%;
+    height: 25%;
+  }
+  #ball {
+    width: 8%;
+    height: 7%;
+  }
+}
+.emote {
+  position: absolute;
+  font-size: 32px;
+  transition: transform 0.2s;
+  animation: pop 0.3s ease-in-out;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes pop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+/* Tambahan khusus untuk slider + input number di dropdown */
+.range-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+.range-group label {
+  flex: 1;
+  font-size: 10px;
+  color: #fff;
+}
+
+.range-group input[type=range] {
+  flex: 2;
+  accent-color: #f0f;
+  background: transparent;
+  cursor: pointer;
+}
+
+.range-group input[type=number] {
+  width: 60px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  padding: 4px;
+  background: #000;
+  color: #fff;
+  border: 1px solid #f0f;
+  box-shadow: 0 0 5px #f0f;
+  text-align: center;
+}
+
+/* Saat hover input number */
+.range-group input[type=number]:hover {
+  border-color: rgb(255, 0, 128);
+  box-shadow: 0 0 8px rgb(255, 0, 119);
+}
+
+/* Biarkan CSS asli dropdown tetap jalan */
+.dropdown-content label {
+  margin: 6px 0 2px;
+  font-size: 10px;
+  color: #fff;
+}
+/* Leaderboard buttons */
+.leaderboard-btn {
+  padding: 10px 15px;
+  margin: 0 5px;
+  background: rgba(100, 0, 150, 0.7);
+  color: #fff;
+  border: 1px solid #f0f;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  transition: all 0.3s;
+}
+
+.leaderboard-btn:hover {
+  background: rgba(150, 0, 200, 0.9);
+  transform: scale(1.05);
+}
+
+.menu-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  font-family: 'Press Start 2P', monospace;
+  background: #000;
+  color: #0f0;
+  border: 2px solid #0f0;
+  border-radius: 6px;
+  text-decoration: none;
+  box-shadow: 0 0 10px #0f0;
+  transition: all 0.3s ease;
+}
+
+.menu-btn:hover {
+  background: #0f0;
+  color: #000;
+  transform: scale(1.05);
+}
+
+/* === NEON BALL EFFECTS === */
+/* Attach this with `#ball.neon-ball` to enable animated neon color shifts + float */
+#ball.neon-ball {
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #ff00ff 18%, #00ffff 60%);
+  box-shadow: 0 0 8px #ff00ff, 0 0 20px #00ffff, 0 0 30px rgba(0,255,255,0.12);
+  animation: neon-hue 3.6s linear infinite, neon-float 2.8s ease-in-out infinite;
+  transition: box-shadow 0.15s linear, transform 0.15s linear;
+  will-change: transform, filter, box-shadow;
+}
+
+#ball.neon-ball::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,0,255,0.18) 20%, rgba(0,255,255,0.10) 60%);
+  filter: blur(8px);
+  opacity: 0.95;
+  animation: neon-after-hue 4s linear infinite;
+}
+
+@keyframes neon-hue {
+  0%   { filter: hue-rotate(0deg) drop-shadow(0 0 6px #ff00ff); }
+  50%  { filter: hue-rotate(180deg) drop-shadow(0 0 18px #00ffff); }
+  100% { filter: hue-rotate(360deg) drop-shadow(0 0 6px #ff00ff); }
+}
+
+@keyframes neon-after-hue {
+  0%   { transform: scale(0.98); filter: hue-rotate(0deg); }
+  50%  { transform: scale(1.02); filter: hue-rotate(180deg); }
+  100% { transform: scale(0.98); filter: hue-rotate(360deg); }
+}
+
+@keyframes neon-float {
+  0%   { transform: translate(-50%,-50%) translateY(0) scale(1); }
+  50%  { transform: translate(-50%,-50%) translateY(-6px) scale(1.03) rotate(-2deg); }
+  100% { transform: translate(-50%,-50%) translateY(0) scale(1); }
+}

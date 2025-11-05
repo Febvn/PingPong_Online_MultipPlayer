@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sign Up - PingPong Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body { font-family:'Press Start 2P',monospace; background:linear-gradient(180deg,#050014,#0b0028); color:#fff; height:100vh; display:flex; align-items:center; justify-content:center; }
+    .card { width:100%; max-width:420px; background: rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.06); padding:18px; border-radius:12px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); position:relative }
+    h1 { font-size:16px; color:#9ef0ff; margin-bottom:8px; text-align:center; }
+    label { display:block; font-size:11px; color:#9ef0ff; margin-bottom:6px; }
+    input { width:100%; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:#07070b; color:#fff; }
+    .row { margin-bottom:12px; }
+    .controls { display:flex; gap:8px; justify-content:space-between; margin-top:12px; }
+    button { padding:10px 12px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.06); color:#fff; cursor:pointer; }
+    .muted { color:#ccc; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔐 Sign Up</h1>
+    <div class="row"><label>Username</label><input id="username" type="text" autocomplete="username" /></div>
+    <div class="row"><label>Password</label><input id="password" type="password" autocomplete="new-password" /></div>
+    <div class="row"><label>Confirm</label><input id="confirm" type="password" autocomplete="new-password" /></div>
+    <div class="controls">
+      <div style="display:flex;gap:8px;"></div>
+      <div style="display:flex;gap:8px;"><button id="btn-submit">Sign Up</button></div>
+    </div>
+    <button id="btn-close-x" title="Close" style="position:absolute; right:14px; top:10px; background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer;">✕</button>
+    <div style="margin-top:8px;" class="muted">Signup akan membuat akun dan menyimpan session lokal (tidak aman untuk produksi).</div>
+  </div>
+<script>
+  (function(){
+    const u = document.getElementById('username');
+    const p = document.getElementById('password');
+    const c = document.getElementById('confirm');
+  const submit = document.getElementById('btn-submit');
+  const btnCloseX = document.getElementById('btn-close-x');
+
+    submit.addEventListener('click', async ()=>{
+      const username = (u.value||'').trim();
+      const password = (p.value||'');
+      const confirm = (c.value||'');
+      if (!username || !password || !confirm) { alert('Isi semua field'); return; }
+      if (password !== confirm) { alert('Password tidak cocok'); return; }
+      if (password.length < 6) { alert('Password minimal 6 karakter'); return; }
+      submit.disabled = true;
+      try {
+        const res = await fetch('signup.php', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
+        const j = await res.json();
+        if (j && j.success) {
+          try { localStorage.setItem('playerName', username); localStorage.setItem('playerId', j.user_id || 0); } catch(e){}
+          try {
+            const target = (window.parent && window.parent !== window) ? window.parent : window.opener;
+            if (target && typeof target.postMessage === 'function') {
+              target.postMessage({ type:'account-updated', playerName: username }, '*');
+              // request the parent to close the iframe/modal
+              target.postMessage({ type:'request-close' }, '*');
+            }
+          } catch(e){}
+          // attempt to close ourselves as a fallback
+          try { window.close(); } catch(e){}
+        } else {
+          alert((j && j.message) || 'Signup gagal');
+          submit.disabled = false;
+        }
+      } catch(e) { alert('Terjadi kesalahan server'); submit.disabled = false; }
+    });
+
+  if (btnCloseX) btnCloseX.addEventListener('click', ()=>{ try { const target = (window.parent && window.parent !== window) ? window.parent : window.opener; if (target && typeof target.postMessage === 'function') target.postMessage({ type:'request-close' }, '*'); else window.close(); } catch(e){ try { window.close(); } catch(e){} } });
+
+    window.addEventListener('message', (ev)=>{ try { if (ev.data && ev.data.type === 'request-focus') u.focus(); } catch(e){} });
+  })();
+</script>
+</body>
+</html>

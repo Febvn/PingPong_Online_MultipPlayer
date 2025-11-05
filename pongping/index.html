@@ -1,0 +1,3348 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pong Pro</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Font Awesome for clean icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-p6O6XQYQZ6Y3qGq0g+7q3tZ5GkY7r1K9e0YqzvDk0s6Kq5c1y1q2n3Q4r5t6u7v8w9x0y1z2a3b4c5d6e7f8g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Favicons & Web Manifest -->
+  <link rel="icon" type="image/png" sizes="32x32" href="logo.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#190033">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    html, body {
+      overflow: hidden;
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Press Start 2P', monospace;
+      background: linear-gradient(to top, #000010, #190033, #38005a, #5e00a1);
+      background-size: 100% 400%;
+      animation: waves 10s infinite linear;
+      color: #0ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-shadow: 0 0 2px #0ff, 0 0 5px #0ff;
+      position: relative;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 8px 8px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes waves {
+      0% { background-position: 0% 100%; }
+      50% { background-position: 0% 80%; }
+      100% { background-position: 0% 100%; }
+    }
+
+    #game-container {
+      width: 90vw;
+      max-width: 800px;
+      text-align: center;
+      z-index: 2;
+    }
+
+    #score {
+      font-size: 18px;
+      margin: 10px 0;
+      color: #fff;
+      text-shadow: 0 0 5px #ff00ff;
+    }
+
+    #arena {
+      position: relative;
+      width: 98%;
+      aspect-ratio: 3 / 2;
+      height: 60vh;
+      background: linear-gradient(135deg, #111, #222);
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgb(255, 255, 255);
+      z-index: 2;
+    }
+
+    #arena::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 4px dashed rgb(255, 255, 255);
+      pointer-events: none;
+      box-sizing: border-box;
+      transition: border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+
+    #arena.player-score::before {
+      border-right-color: red;
+    }
+
+    #arena.ai-score::before {
+      border-left-color: red;
+    }
+
+    .paddle {
+      position: absolute;
+      width: 5%;
+      height: 25%;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.06);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      z-index: 3;
+    }
+
+    /* Player (left) - neon light blue */
+    .player {
+      left: 0;
+      top: 40%;
+      background: linear-gradient(180deg, #bfefff 0%, #7fe8ff 60%);
+      box-shadow: 0 0 12px rgba(126,232,255,0.9), 0 0 28px rgba(0,200,255,0.18);
+      border: 1px solid rgba(160,240,255,0.14);
+    }
+
+    /* AI (right) - neon red */
+    .ai {
+      right: 0;
+      top: 40%;
+      background: linear-gradient(180deg, #ff9aa2 0%, #ff3b3b 60%);
+      box-shadow: 0 0 12px rgba(255,80,80,0.9), 0 0 28px rgba(255,20,20,0.14);
+      border: 1px solid rgba(255,100,100,0.12);
+    }
+
+    #ball {
+      position: absolute;
+      width: 4%;
+      height: 6%;
+      background: #f0f;
+      border-radius: 50%;
+  left: 0;
+  top: 0;
+      box-shadow: 0 0 10px #f0f;
+      z-index: 3;
+    }
+
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    /* Icon-style buttons for compact UI */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      padding: 8px;
+      font-size: 18px;
+      background: rgba(0,0,0,0.6);
+      color: #0ff;
+      border: 2px solid rgba(0,255,255,0.12);
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,255,255,0.06), 0 0 12px rgba(0,255,255,0.12);
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    }
+    .icon-btn i { pointer-events: none; }
+    .icon-btn:active { transform: scale(0.96); }
+
+    /* Top-right X (menu/close) placed inside #game-container */
+    .top-right-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 30;
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 10px rgba(255,0,255,0.06);
+      cursor: pointer;
+      transition: transform 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .top-right-close:hover { transform: translateY(-2px); color: #ff00ff; box-shadow: 0 10px 30px rgba(255,0,255,0.06); }
+
+    /* Pause button placed to the left of the top-right close (X) without moving the X */
+    .top-right-pause {
+      position: absolute;
+      top: 8px;
+      right: 60px; /* sits left of the X (8px + 44px width + 8px gap approx) */
+      z-index: 30;
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 10px rgba(255,0,255,0.06);
+      cursor: pointer;
+      transition: transform 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .top-right-pause:hover { transform: translateY(-2px); color: #0ff; box-shadow: 0 10px 30px rgba(0,255,255,0.06); }
+    .top-right-pause .pause-symbol {
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    #controls button {
+      padding: 12px 24px;
+      font-size: 20px;
+      font-family: 'Press Start 2P', monospace;
+      background: #000;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 6px;
+      box-shadow: 0 0 10px #0f0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    #controls button:active {
+      transform: scale(0.95);
+    }
+
+    #menu-screen {
+      text-align: center;
+      margin-top: 5vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      z-index: 2;
+      animation: fadein 1s ease-in;
+    }
+
+    #menu-screen h1 {
+      font-size: 32px;
+      font-family: 'Orbitron', sans-serif;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+    }
+
+    #menu-screen button {
+      text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+      padding: 16px 24px;
+      font-size: 14px;
+      font-family: 'Press Start 2P', monospace;
+      width: 240px;
+      background: #000;
+      color: #fff;
+      border: 2px solid #f0f;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #f0f, 0 0 20px rgb(0, 0, 0);
+      transition: all 0.3s ease;
+    }
+
+    #menu-screen button:hover {
+      background: #f0f;
+      color: #000;
+      transform: scale(1.05);
+    }
+
+    #menu-screen button:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 5px #0ff inset;
+    }
+
+    #login-buttons {
+      display: flex;
+      width: 240px;
+      gap: 10px;
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+
+    #login-buttons button {
+      flex: 1;
+      padding: 12px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      background: #000;
+      color: #fff;
+      border: 2px solid #f0f;
+      border-radius: 4px;
+      box-shadow: 0 0 6px #f0f;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    #login-buttons button:hover {
+      background: #f0f;
+      color: #000;
+      transform: scale(1.03);
+    }
+
+    .dropdown {
+      position: relative;
+      width: 240px;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      flex-direction: column;
+      background: #000;
+      border: 2px solid #f0f;
+      border-top: none;
+      z-index: 3;
+      box-shadow: 0 0 10px #f0f;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: flex;
+    }
+
+    .dropdown-content button,
+    .dropdown-content input[type=range],
+    .dropdown-content label {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      background: #000;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 10px;
+    }
+
+    .dropdown-content button:hover {
+      background: #f0f;
+      color: #000;
+    }
+
+    .dropdown-content input[type=range] {
+      margin-top: 5px;
+    }
+
+    .difficulty-btn.easy {
+      background: #002e00;
+      color: #0f0;
+      border-top: 1px solid #0f0;
+      box-shadow: 0 0 6px #0f0;
+    }
+    .difficulty-btn.easy:hover,
+    .difficulty-btn.easy:focus {
+      background: linear-gradient(90deg,#06d906,#00ff66);
+  color: #002200;
+      box-shadow: 0 0 18px rgba(0,255,102,0.9), 0 0 36px rgba(0,200,150,0.4);
+  border: 1px solid rgba(0,255,102,0.85);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .difficulty-btn.medium {
+      background: #2e2e00;
+      color: #ff0;
+      border-top: 1px solid #ff0;
+      box-shadow: 0 0 6px #ff0;
+    }
+    .difficulty-btn.medium:hover,
+    .difficulty-btn.medium:focus {
+      background: linear-gradient(90deg,#ffd800,#ffec6b);
+      color: #332900;
+      box-shadow: 0 0 18px rgba(255,220,0,0.9), 0 0 36px rgba(255,180,0,0.4);
+  border: 1px solid rgba(255,220,0,0.9);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .difficulty-btn.hard {
+      background: #2e0000;
+      color: #f00;
+      border-top: 1px solid #f00;
+      box-shadow: 0 0 6px #f00;
+    }
+    .difficulty-btn.hard:hover,
+    .difficulty-btn.hard:focus {
+      background: linear-gradient(90deg,#ff3b3b,#ff7373);
+  color: #000 !important;
+      box-shadow: 0 0 18px rgba(255,80,80,0.9), 0 0 36px rgba(255,40,40,0.4);
+  border: 1px solid rgba(255,80,80,0.9);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+  /* Fallback class applied by JS on mouseenter/focus to force the same visual */
+  .hovered-difficulty.easy { background: linear-gradient(90deg,#06d906,#00ff66) !important; color: #002200 !important; box-shadow: 0 0 18px rgba(0,255,102,0.9), 0 0 36px rgba(0,200,150,0.4) !important; transform: translateY(-2px) !important; border: 1px solid rgba(0,255,102,0.85) !important; }
+  .hovered-difficulty.medium { background: linear-gradient(90deg,#ffd800,#ffec6b) !important; color: #332900 !important; box-shadow: 0 0 18px rgba(255,220,0,0.9), 0 0 36px rgba(255,180,0,0.4) !important; transform: translateY(-2px) !important; border: 1px solid rgba(255,220,0,0.9) !important; }
+  .hovered-difficulty.hard { background: linear-gradient(90deg,#ff3b3b,#ff7373) !important; color: #000 !important; box-shadow: 0 0 18px rgba(255,80,80,0.9), 0 0 36px rgba(255,40,40,0.4) !important; transform: translateY(-2px) !important; border: 1px solid rgba(255,80,80,0.9) !important; }
+
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .emote {
+      position: absolute;
+      font-size: 32px;
+      transition: transform 0.2s;
+      animation: pop 0.3s ease-in-out;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    /* Make audio/emote control buttons borderless (no borderline) */
+    #sfx-mute-toggle, #mute-toggle {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #sfx-mute-toggle:hover, #mute-toggle:hover,
+    #sfx-mute-toggle:focus, #mute-toggle:focus {
+      background: rgba(255,255,255,0.03) !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+
+    .range-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .range-group label {
+      flex: 1;
+      font-size: 10px;
+      color: #fff;
+    }
+
+    .range-group input[type=range] {
+      flex: 2;
+      accent-color: #f0f;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .range-group input[type=number] {
+      width: 60px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 4px;
+      background: #000;
+      color: #fff;
+      border: 1px solid #f0f;
+      box-shadow: 0 0 5px #f0f;
+      text-align: center;
+    }
+
+    .range-group input[type=number]:hover {
+      border-color: rgb(255, 0, 128);
+      box-shadow: 0 0 8px rgb(255, 0, 119);
+    }
+
+    .dropdown-content label {
+      margin: 6px 0 2px;
+      font-size: 10px;
+      color: #fff;
+    }
+
+    /* Neon rainbow timer */
+    #timer {
+      font-size: 24px;
+      margin: 10px 0;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 18px rgba(255,0,255,0.25);
+      background: linear-gradient(90deg, #ff004d, #ff8a00, #ffee00, #00ff6a, #00d4ff, #7a00ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent; /* text filled from gradient */
+      position: relative;
+      z-index: 5;
+      animation: rainbow-shift 3.6s linear infinite, timer-glow 2.4s ease-in-out infinite;
+    }
+
+    @keyframes rainbow-shift {
+      0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+      50% { background-position: 100% 50%; filter: hue-rotate(180deg); }
+      100% { background-position: 0% 50%; filter: hue-rotate(360deg); }
+    }
+
+    @keyframes timer-glow {
+      0% { text-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 0 18px rgba(255,0,255,0.22); transform: translateY(0); }
+      50% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 28px rgba(0,255,200,0.28); transform: translateY(-2px) scale(1.02); }
+      100% { text-shadow: 0 0 6px rgba(255, 255, 255, 0.9), 0 0 18px rgba(255,0,255,0.22); transform: translateY(0); }
+    }
+
+    #leaderboard-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    /* Make leaderboard take the entire viewport when opened */
+    #leaderboard-content {
+      background: rgba(0,0,0,0.95);
+      padding: 24px;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative; /* so the close button can be positioned */
+    }
+
+    /* Make the leaderboard title visually match the main menu header */
+    #leaderboard-content h2 {
+      text-align: center;
+      margin: 8px 0 16px 0;
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 40px;
+      line-height: 1;
+      text-shadow: 0 0 10px #f0f, 0 0 20px #0ff;
+      letter-spacing: 1px;
+    }
+
+    /* Table layout: keep table semantics and use a scroll wrapper */
+    #leaderboard-content .table-scroll {
+      flex: 1 1 auto;
+      overflow: auto;
+      max-height: calc(100vh - 240px);
+      width: 100%;
+    }
+
+    /* Table typography and layout */
+    #leaderboard-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      table-layout: fixed;
+      font-family: 'Press Start 2P', monospace;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #leaderboard-content th,
+    #leaderboard-content td {
+      padding: 14px 10px;
+      text-align: center;
+      border-bottom: 1px solid rgba(0,255,255,0.12);
+      font-size: 14px;
+      color: #fff;
+    }
+
+    /* Header style matching menu color accents */
+    #leaderboard-content thead th {
+      color: #fff;
+      text-shadow: 0 0 6px #f0f;
+      font-size: 13px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Column widths: rank small, player wide, scores compact */
+    /* Adjusted widths: keep Rank & Name as-is, make other columns fit better */
+    #leaderboard-content th:nth-child(1), #leaderboard-content td:nth-child(1) { width: 6%; }
+    #leaderboard-content th:nth-child(2), #leaderboard-content td:nth-child(2) { width: 38%; text-align: left; padding-left: 18px; }
+    #leaderboard-content th:nth-child(3), #leaderboard-content td:nth-child(3) { width: 10%; }
+    #leaderboard-content th:nth-child(4), #leaderboard-content td:nth-child(4) { width: 10%; }
+    #leaderboard-content th:nth-child(5), #leaderboard-content td:nth-child(5) { width: 12%; }
+    #leaderboard-content th:nth-child(6), #leaderboard-content td:nth-child(6) { width: 12%; }
+    #leaderboard-content th:nth-child(7), #leaderboard-content td:nth-child(7) { width: 12%; }
+
+    /* Numeric columns center and emphasized */
+    #leaderboard-content td:nth-child(1),
+    #leaderboard-content td:nth-child(3),
+    #leaderboard-content td:nth-child(4),
+    #leaderboard-content td:nth-child(7) {
+      text-align: center;
+      font-weight: 700;
+    }
+
+    /* Additional cell classes */
+    .ai-score-cell {
+      color: #fff;
+    }
+
+    .difficulty-cell {
+      color: #fff;
+      opacity: 0.95;
+      font-size: 13px;
+    }
+
+    .result-cell {
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .date-cell {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    /* Highlight styles for winner */
+    .highlight-player {
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #00d7ff;
+      font-weight: 800;
+    }
+
+    .highlight-ai {
+      color: #ff6b6b;
+      text-shadow: 0 0 6px rgba(255,107,107,0.6);
+    }
+
+    /* Row hover for clarity */
+    #leaderboard-content tbody tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Accent for player score cells to match main menu glow */
+    .player-score-cell {
+      color: #ff0;
+      text-shadow: 0 0 8px #ff0, 0 0 16px #0ff;
+      font-weight: bold;
+    }
+
+    .player-name {
+      font-size: 18px;
+      color: #fff;
+      text-shadow: 0 0 6px #f0f;
+      font-weight: 700;
+    }
+
+    #close-leaderboard {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      z-index: 101;
+      margin-top: 0;
+      padding: 6px 8px;
+      background: transparent;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    #close-leaderboard:hover { color: #ff00ff; }
+
+    #login-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #signup-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    /* Match account.html modal styling for login/signup popups */
+    #login-content, #signup-content {
+      background: linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0.6));
+      padding: 24px;
+      border-radius: 16px;
+      border: 3px solid rgba(212,22,165,0.9);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      color: #fff;
+      width: 90%;
+      max-width: 420px;
+    }
+
+    #login-content h2, #signup-content h2 {
+      text-align: left;
+      margin: 0 0 12px 0;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    #login-content input, #signup-content input {
+      width: 100%;
+      padding: 10px 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 2px solid rgba(255,255,255,0.06);
+      background: #111;
+      color: #fff;
+      font-size: 12px;
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    #login-content input:focus, #signup-content input:focus {
+      outline: none;
+      border-color: #ff00ff;
+      box-shadow: 0 0 10px rgba(255,0,255,0.08);
+    }
+
+    /* Reusable button styles matching account.html */
+    .btn{
+      padding:10px 16px;border-radius:8px;border:2px solid transparent;font-family:'Press Start 2P',monospace;cursor:pointer;font-size:12px;transition:transform 0.15s ease, opacity 0.2s ease;
+    }
+    .btn:hover{transform:translateY(-2px);opacity:0.95}
+    .btn-neon-green{background:linear-gradient(90deg,#06d906,#00ff66);color:#002200;border:1px solid rgba(0,255,102,0.85);box-shadow:0 0 14px rgba(0,255,102,0.85);}
+    .btn-neon-red{background:linear-gradient(90deg,#ff3b3b,#ff7373);color:#000;border:1px solid rgba(255,80,80,0.9);box-shadow:0 0 14px rgba(255,80,80,0.9);}
+    .btn-ghost{background:#222;border:2px solid rgba(255,255,255,0.06);color:#fff}
+
+    #login-content .actions, #signup-content .actions { display:flex;gap:8px;flex-direction:column }
+    @media(min-width:480px){ #login-content .actions, #signup-content .actions { flex-direction:row; justify-content:flex-end } }
+  .close-x{background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;transition:color 0.2s ease}
+  .close-x:hover{color:#ff00ff}
+
+    @media (max-width: 768px) {
+      #arena {
+        aspect-ratio: 4/3;
+      }
+      .paddle {
+        width: 8%;
+        height: 25%;
+      }
+      #ball {
+        width: 8%;
+        height: 7%;
+      }
+    }
+    
+    .status-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: #ff0;
+      padding: 10px 20px;
+      border-radius: 5px;
+      border: 1px solid #ff0;
+      z-index: 1000;
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      box-shadow: 0 0 10px #ff0;
+    }
+    
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: #f00;
+      top: 0;
+      opacity: 0;
+      z-index: 100;
+    }
+    
+    .confetti:nth-child(1n) {
+      background: #f00;
+    }
+    .confetti:nth-child(2n) {
+      background: #0f0;
+    }
+    .confetti:nth-child(3n) {
+      background: #00f;
+    }
+    .confetti:nth-child(4n) {
+      background: #ff0;
+    }
+    .confetti:nth-child(5n) {
+      background: #f0f;
+    }
+    /* Mobile-friendly leaderboard: stacked card view */
+    .lb-cards {
+      display: none;
+      width: 100%;
+      gap: 10px;
+      padding: 6px 0;
+      overflow: auto;
+    }
+
+    .lb-card {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 12px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .lb-card .row { display:flex; justify-content:space-between; }
+    .lb-card .label { color: #aaa; font-size:11px; }
+    .lb-card .value { color: #fff; font-weight:700; }
+
+    @media (max-width: 600px) {
+      #leaderboard-content { padding: 12px; }
+      #leaderboard-content h2 { font-size: 26px; margin-bottom: 8px; }
+      #leaderboard-content .table-scroll { display: none; }
+      #leaderboard-content .lb-cards { display: flex; flex-direction: column; }
+      #leaderboard-content table { font-size: 12px; table-layout: auto; min-width: 100%; }
+      #leaderboard-content th, #leaderboard-content td { padding: 10px 8px; }
+      /* hide less important columns on mobile */
+      #leaderboard-content th:nth-child(5), #leaderboard-content td:nth-child(5),
+      #leaderboard-content th:nth-child(7), #leaderboard-content td:nth-child(7) { display: none; }
+      #close-leaderboard { top: 8px; right: 8px; padding: 8px 10px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Menu Awal -->
+  <div id="menu-screen">
+    <h1>PONG PRO🏓</h1>
+  <!-- Menu background music (loop) -->
+  <audio id="menu-music" src="muscicmenu.mp3" loop preload="auto"></audio>
+
+    <div id="login-buttons">
+      <button id="login-btn">Login</button>
+      <button id="signup-btn">Sign Up</button>
+      <button id="account-btn" style="display:none;">Account</button>
+      <!-- Admin-only button; hidden by default -->
+      <button id="reset-leaderboard-btn" style="display:none;background:#330000;border:2px solid #ff8080;color:#fff;">Reset Leaderboard</button>
+    </div>
+
+    <!-- PVE Dropdown -->
+    <div class="dropdown">
+      <button id="single-btn">PVE (1VS1)</button>
+      <div class="dropdown-content">
+        <label>Waktu (menit):</label>
+        <div class="range-group">
+          <input type="range" id="time-range" min="1" max="999" value="1">
+          <input type="number" id="time-input" min="1" max="999" value="1">
+        </div>
+
+        <label>Poin Maksimal:</label>
+        <div class="range-group">
+          <input type="range" id="point-range" min="1" max="999" value="5">
+          <input type="number" id="point-input" min="1" max="999" value="5">
+        </div>
+
+        <button class="difficulty-btn easy" data-level="easy">Easy</button>
+        <button class="difficulty-btn medium" data-level="medium">Medium</button>
+        <button class="difficulty-btn hard" data-level="hard">Hard</button>
+      </div>
+    </div>
+ 
+    <!-- Multiplayer Button (dropdown like PVE) -->
+    <div class="dropdown" style="display:inline-block; width:240px;">
+      <button id="multi-btn">Multiplayer</button>
+      <div class="dropdown-content" style="width:100%; min-width:0;">
+        <label>Waktu (menit):</label>
+        <div class="range-group">
+          <input type="range" id="multi-time-range" min="1" max="999" value="1">
+          <input type="number" id="multi-time-input" min="1" max="999" value="1">
+        </div>
+
+        <label>Poin Maksimal:</label>
+        <div class="range-group">
+          <input type="range" id="multi-point-range" min="1" max="999" value="5">
+          <input type="number" id="multi-point-input" min="1" max="999" value="5">
+        </div>
+
+        <button id="multi-local-btn" class="difficulty-btn medium" data-level="local">Local</button>
+        <!-- 'With AI' button removed as requested -->
+      </div>
+    </div>
+
+    <!-- Leaderboard Button -->
+    <button id="leaderboard-btn">Leaderboard</button>
+
+  <!-- Settings Button (replacing Info) -->
+  <button id="settings-btn">Settings</button>
+  </div>
+
+  <!-- Game -->
+  <div id="game-container" style="display:none;">
+    <div id="multiplayer-hint" style="display:none; position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:40; background:rgba(0,0,0,0.6); color:#fff; padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); font-size:12px;">
+      P1: W / S or left touch &nbsp; | &nbsp; P2: ↑ / ↓ or right touch
+    </div>
+    <div id="timer">01:00</div>
+
+    <!-- Player / AI name labels shown above score -->
+    <div id="names" style="display:flex;justify-content:center;gap:48px;margin-bottom:6px;align-items:center;">
+      <div id="player-name-display" style="font-size:12px;color:#bfefff;text-shadow:0 0 8px rgba(126,232,255,0.8);">Guest</div>
+      <div id="ai-name-display" style="font-size:12px;color:#ff9aa2;text-shadow:0 0 8px rgba(255,100,100,0.85);">AI (Medium)</div>
+    </div>
+
+  <!-- Menu/Close button (moved to top-right corner for better UX) -->
+  <button id="menu-btn" class="top-right-close" title="Menu">✕</button>
+  <!-- Pause button placed directly to the left of the X (do not change X position) -->
+  <button id="pause-btn" class="top-right-pause" aria-label="Pause" title="Pause"><span class="pause-symbol">⏸</span></button>
+
+    <div id="score">
+      <span id="player-score">0</span> : <span id="ai-score">0</span>
+    </div>
+    
+    <div id="arena">
+  <div class="paddle player"></div>     
+  <div class="paddle ai"></div>
+  <!-- Touch overlay zones: left/right halves to reliably capture touches for mobile -->
+  <div class="touch-left" aria-hidden="true" style="position:absolute;inset:0 50% 0 0;z-index:4;"></div>
+  <div class="touch-right" aria-hidden="true" style="position:absolute;inset:0 0 0 50%;z-index:4;"></div>
+      <div id="ball"></div>
+    </div>
+
+    <div id="controls">
+      <!-- controls area kept for future buttons; pause is in top-right beside X per request -->
+    </div>
+  </div>
+  
+  <!-- Leaderboard Popup -->
+  <div id="leaderboard-container" style="display:none;">
+    <div id="leaderboard-content">
+      <h2> LEADERBOARD</h2>
+  <button id="enter-fullscreen" title="Toggle fullscreen" style="position:absolute;top:14px;right:64px;z-index:101;padding:6px 8px;background:transparent;border:none;color:#fff;border-radius:6px;font-size:20px;line-height:1;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;">⤢</button>
+      <div class="table-scroll">
+      <table id="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Score</th>
+            <th>AI Score</th>
+            <th>Difficulty</th>
+            <th>Result</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <!-- Data akan diisi oleh JavaScript -->
+        </tbody>
+      </table>
+      </div>
+  <!-- Mobile stacked cards view (populated on small screens) -->
+  <div class="lb-cards" id="leaderboard-cards"></div>
+  <button id="close-leaderboard" class="close-x" title="Tutup">✕</button>
+    </div>
+  </div>
+  
+  <!-- Login Popup -->
+  <div id="login-container" style="display:none;">
+    <div id="login-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h2 style="margin:0;">🔑 Login</h2>
+        <button id="login-close" class="close-x" title="Tutup">✕</button>
+      </div>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <div class="actions">
+        <button id="login-submit" class="btn btn-neon-green">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Popup -->
+  <div id="account-container" style="display:none;">
+    <div id="account-content" style="width:100%; max-width:420px;">
+      <h2 style="margin-bottom:10px;">👤 Account</h2>
+      <div style="background:rgba(0,0,0,0.6); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+        <div style="margin-bottom:8px; font-size:14px;"><strong>Username:</strong> <span id="account-username">Guest</span></div>
+        <div style="margin-bottom:14px; font-size:14px;"><strong>Password:</strong> <span id="account-password-mask">********</span> <button id="account-showpw" style="margin-left:8px; padding:4px 8px;">Show</button></div>
+
+        <div id="change-username-form" style="display:none; gap:8px; margin-bottom:10px;">
+          <input id="new-username" placeholder="New username" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:#111; color:#fff;" />
+          <div style="display:flex; gap:8px; margin-top:8px;"><button id="save-username">Save</button><button id="cancel-username" class="back-btn">Cancel</button></div>
+        </div>
+
+        <div id="change-password-form" style="display:none; gap:8px; margin-bottom:12px;">
+          <input id="new-password" type="password" placeholder="New password" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:#111; color:#fff;" />
+          <input id="new-password-confirm" type="password" placeholder="Confirm password" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:#111; color:#fff; margin-top:8px;" />
+          <div style="display:flex; gap:8px; margin-top:8px;"><button id="save-password">Save</button><button id="cancel-password" class="back-btn">Cancel</button></div>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:space-between; margin-top:6px;">
+          <div style="display:flex; gap:8px;">
+            <button id="show-change-username">Change Username</button>
+            <button id="show-change-password">Change Password</button>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="logout-btn">Logout</button>
+            <button class="back-btn" id="account-close">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Signup Popup -->
+  <div id="signup-container" style="display:none;">
+    <div id="signup-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h2 style="margin:0;">🔑 Sign Up</h2>
+        <button id="signup-close" class="close-x" title="Tutup">✕</button>
+      </div>
+      <input type="text" id="signup-username" placeholder="Username" />
+      <input type="password" id="signup-password" placeholder="Password" />
+      <input type="password" id="signup-confirm" placeholder="Confirm Password" />
+      <div class="actions">
+        <button id="signup-submit" class="btn btn-neon-green">Sign Up</button>
+      </div>
+    </div>
+
+      <!-- Inline fallback neon styles (so changes remain only in index.html per request) -->
+      <style id="inline-neon-ball-styles">
+        /* minimal neon styles applied directly in HTML as fallback */
+        #ball.neon-ball {
+          background: radial-gradient(circle at 30% 30%, #ffffff 0%, #ffffff 18%, #00ffff 60%);
+          box-shadow: 0 0 8px #ff00ff, 0 0 20px #00ffff, 0 0 30px rgba(0,255,255,0.12);
+          animation: neon-hue-inline 3.6s linear infinite, neon-float-inline 2.8s ease-in-out infinite;
+        }
+        @keyframes neon-hue-inline {
+          0% { filter: hue-rotate(0deg); }
+          50% { filter: hue-rotate(180deg); }
+          100% { filter: hue-rotate(360deg); }
+        }
+        @keyframes neon-float-inline {
+          0% { transform: translate(-50%,-50%) translateY(0) scale(1); }
+          50% { transform: translate(-50%,-50%) translateY(-6px) scale(1.03) rotate(-2deg); }
+          100% { transform: translate(-50%,-50%) translateY(0) scale(1); }
+        }
+    /* --- touch-friendly dropdowns --- */
+    .dropdown .dropdown-content { display: none; }
+    /* disable hover-based opening; index.html will control dropdown visibility only */
+    .dropdown:hover .dropdown-content { display: none !important; }
+    .dropdown.open .dropdown-content { display: flex !important; z-index: 1000; }
+    .dropdown > button { touch-action: manipulation; }
+    .dropdown .dropdown-content { pointer-events: auto; }
+    /* small badge/popups z-index safety */
+    .time-dilate-badge, .double-badge, .time-add-popup, .double-point-pop { pointer-events: none; }
+      </style>
+  </div>
+
+  <script>
+  // Koneksi ke backend PHP
+  // Use the public domain provided by InfinityFree
+  const BACKEND_URL = 'https://pongpro.gamer.gd';
+    
+    // Koneksi ke Neon Database dengan proxy
+    const neonDB = {
+      async login(username, password) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/login.php`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          return result;
+        } catch (error) {
+          console.error("Error logging in:", error);
+          this.showStatus("Error logging in: " + error.message, true);
+          return { success: false };
+        }
+      },
+      
+      async signup(username, password) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/signup.php`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          return result;
+        } catch (error) {
+          console.error("Error signing up:", error);
+          this.showStatus("Error signing up: " + error.message, true);
+          return { success: false };
+        }
+      },
+      
+    async saveScore(playerName, playerScore, aiScore, difficulty, winner, user_id = 0) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/save_score.php`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              playerName,
+              playerScore,
+              aiScore,
+              difficulty,
+        winner,
+        user_id
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          return result;
+        } catch (error) {
+          console.error("Error saving score:", error);
+          this.showStatus("Error saving score: " + error.message, true);
+          return { success: false };
+        }
+      },
+      
+      async getLeaderboard() {
+        try {
+          const response = await fetch(`${BACKEND_URL}/leaderboard.php`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const scores = await response.json();
+          return scores;
+        } catch (error) {
+          console.error("Error getting leaderboard:", error);
+          this.showStatus("Error loading leaderboard: " + error.message, true);
+          return [];
+        }
+      },
+      
+      showStatus(message, isError = false) {
+        const existingStatus = document.querySelector('.status-message');
+        if (existingStatus) existingStatus.remove();
+        
+        const status = document.createElement('div');
+        status.className = 'status-message';
+        status.textContent = message;
+        status.style.color = isError ? '#f00' : '#0f0';
+        status.style.borderColor = isError ? '#f00' : '#0f0';
+        status.style.boxShadow = isError ? '0 0 10px #f00' : '0 0 10px #0f0';
+        
+        document.body.appendChild(status);
+        
+        setTimeout(() => {
+          status.remove();
+        }, 3000);
+      }
+    };
+    
+  // Music control for menu
+    const menuMusic = document.getElementById('menu-music');
+    function tryPlayMenuMusic() {
+      if (!menuMusic) return;
+      // set initial volume from slider if present
+      const volEl = document.getElementById('music-volume');
+      if (volEl) menuMusic.volume = (parseInt(volEl.value, 10) || 70) / 100;
+
+      // Try autoplay, otherwise play on first user interaction
+      const p = menuMusic.play();
+      if (p && typeof p.then === 'function') {
+        p.catch(() => {
+          const onInteraction = () => {
+            menuMusic.play().catch(() => {});
+            window.removeEventListener('click', onInteraction);
+            window.removeEventListener('keydown', onInteraction);
+          };
+          window.addEventListener('click', onInteraction, { once: true });
+          window.addEventListener('keydown', onInteraction, { once: true });
+        });
+      }
+    }
+
+    // Stop menu music (call when game starts)
+    function stopMenuMusic() {
+      if (!menuMusic) return;
+      try { menuMusic.pause(); menuMusic.currentTime = 0; } catch (e) {}
+    }
+
+    // Crossfade helper (HTMLAudio fallback)
+    function crossfadeAudio(outEl, inEl, duration = 800) {
+      try {
+        if (outEl) {
+          const step = 50;
+          const steps = Math.max(1, Math.floor(duration / step));
+          let cur = 0;
+          const startVol = outEl.volume || 1;
+          const fadeOut = setInterval(() => {
+            cur++;
+            const v = Math.max(0, startVol * (1 - cur / steps));
+            outEl.volume = v;
+            if (cur >= steps) {
+              clearInterval(fadeOut);
+              try { outEl.pause(); outEl.currentTime = 0; outEl.volume = startVol; } catch(e){}
+            }
+          }, step);
+        }
+        if (inEl) {
+          inEl.volume = 0;
+          inEl.play().catch(() => {});
+          const step = 50;
+          const steps = Math.max(1, Math.floor(duration / step));
+          let cur = 0;
+          const target = (document.getElementById('music-volume') ? (parseInt(document.getElementById('music-volume').value,10)||70)/100 : 0.7);
+          const fadeIn = setInterval(() => {
+            cur++;
+            const v = Math.min(target, target * (cur / steps));
+            inEl.volume = v;
+            if (cur >= steps) clearInterval(fadeIn);
+          }, step);
+        }
+      } catch (e) { try { if (outEl) { outEl.pause(); outEl.currentTime = 0; } if (inEl) inEl.play().catch(()=>{}); } catch(e){} }
+    }
+
+    // Wire music volume slider and mute toggle
+    document.addEventListener('DOMContentLoaded', () => {
+      const volEl = document.getElementById('music-volume');
+      if (volEl && menuMusic) {
+        // set initial
+        menuMusic.volume = (parseInt(volEl.value, 10) || 70) / 100;
+        volEl.addEventListener('input', () => {
+          menuMusic.volume = (parseInt(volEl.value, 10) || 0) / 100;
+        });
+      }
+
+      // Mute toggle located in Settings dropdown
+      const muteToggle = document.getElementById('mute-toggle');
+      if (muteToggle && menuMusic) {
+        // restore saved mute preference
+        try {
+          const saved = localStorage.getItem('menuMuted');
+          if (saved === '1' || saved === '0') menuMusic.muted = saved === '1';
+        } catch (e) {}
+        const updateIcon = () => { muteToggle.textContent = menuMusic.muted ? '🔇' : '🔊'; };
+        updateIcon();
+        muteToggle.addEventListener('click', () => {
+          menuMusic.muted = !menuMusic.muted;
+          try { localStorage.setItem('menuMuted', menuMusic.muted ? '1' : '0'); } catch (e) {}
+          // ensure ingame music element follows the same muted state
+          try { if (typeof audioIngame !== 'undefined' && audioIngame) audioIngame.muted = menuMusic.muted; } catch(e){}
+          updateIcon();
+        });
+      }
+
+      // Try to play music on load (may require interaction)
+      // SFX slider and hit sound + WebAudio initialization
+      const sfxEl = document.getElementById('sfx-volume');
+      if (sfxEl) {
+        sfxVolume = (parseInt(sfxEl.value, 10) || 80) / 100;
+        sfxEl.addEventListener('input', () => {
+          sfxVolume = (parseInt(sfxEl.value, 10) || 0) / 100;
+        });
+      }
+
+      const sfxMuteBtn = document.getElementById('sfx-mute-toggle');
+      if (sfxMuteBtn) {
+        try { const saved = localStorage.getItem('sfxMuted'); if (saved === '1' || saved === '0') sfxMuted = saved === '1'; } catch(e){}
+        const updateSfxIcon = () => { sfxMuteBtn.textContent = sfxMuted ? '🔇' : '🔊'; };
+        updateSfxIcon();
+        sfxMuteBtn.addEventListener('click', () => { sfxMuted = !sfxMuted; try{ localStorage.setItem('sfxMuted', sfxMuted ? '1' : '0'); }catch(e){}; updateSfxIcon(); });
+      }
+
+      // Touch-friendly dropdowns: on touch devices, allow tap to toggle dropdowns
+      try {
+        const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+        if (isTouch) {
+          document.querySelectorAll('.dropdown').forEach(drop => {
+            const btn = drop.querySelector('button');
+            const content = drop.querySelector('.dropdown-content');
+            if (!btn) return;
+            btn.setAttribute('aria-haspopup', 'true');
+            btn.setAttribute('aria-expanded', 'false');
+            // small flag to avoid double toggles when pointerdown and click both fire
+            let recentPointer = false;
+            const setOpen = (open) => {
+              if (open) drop.classList.add('open'); else drop.classList.remove('open');
+              try { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); } catch(e){}
+            };
+            // pointerdown for better touch responsiveness in some webviews
+            btn.addEventListener('pointerdown', (ev) => {
+              recentPointer = true;
+              setTimeout(() => { recentPointer = false; }, 300);
+              try { ev.preventDefault(); ev.stopImmediatePropagation(); } catch(e){}
+              setOpen(!drop.classList.contains('open'));
+            });
+            // fallback for older browsers
+            btn.addEventListener('touchstart', (ev) => {
+              recentPointer = true;
+              setTimeout(() => { recentPointer = false; }, 300);
+              try { ev.preventDefault(); ev.stopImmediatePropagation(); } catch(e){}
+              setOpen(!drop.classList.contains('open'));
+            }, { passive: true });
+            // click as final fallback (ignored if pointer event just fired)
+            btn.addEventListener('click', (ev) => {
+              if (recentPointer) return;
+              try { ev.preventDefault(); ev.stopImmediatePropagation(); } catch(e){}
+              setOpen(!drop.classList.contains('open'));
+            });
+            // prevent clicks inside content from bubbling to document (which would close it)
+            if (content) content.addEventListener('click', (e) => { try { e.stopPropagation(); } catch(e){} });
+          });
+          // close on outside click
+          document.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown.open').forEach(d => {
+              d.classList.remove('open');
+              const b = d.querySelector('button'); if (b) try { b.setAttribute('aria-expanded','false'); } catch(e){}
+            });
+          });
+        }
+      } catch (e) { /* ignore */ }
+
+      // Listen for storage changes so settings changed on other pages (Info.php) apply live
+      window.addEventListener('storage', (e) => {
+        try {
+          if (!e.key) return;
+          if (e.key === 'menuMuted') {
+            const muted = e.newValue === '1';
+            try { if (menuMusic) menuMusic.muted = muted; } catch(e){}
+            try { if (typeof audioIngame !== 'undefined' && audioIngame) audioIngame.muted = muted; } catch(e){}
+            try { const mt = document.getElementById('mute-toggle'); if (mt && menuMusic) mt.textContent = menuMusic.muted ? '🔇' : '🔊'; } catch(e){}
+          } else if (e.key === 'musicVolume') {
+            const vol = (parseInt(e.newValue,10) || 70) / 100;
+            try { if (menuMusic) menuMusic.volume = vol; } catch(e){}
+            try { if (typeof audioIngame !== 'undefined' && audioIngame) audioIngame.volume = vol; } catch(e){}
+            try { const mv = document.getElementById('music-volume'); if (mv) mv.value = String(Math.round(vol*100)); } catch(e){}
+          } else if (e.key === 'sfxVolume') {
+            const v = (parseInt(e.newValue,10) || 80) / 100;
+            try { sfxVolume = v; } catch(e){}
+            try { if (audioHit) audioHit.volume = v; if (audioPoint) audioPoint.volume = Math.min(1.0, v * (sfxGainMap['point']||1)); } catch(e){}
+            try { const sv = document.getElementById('sfx-volume'); if (sv) sv.value = String(Math.round(v*100)); } catch(e){}
+          } else if (e.key === 'sfxMuted') {
+            const muted = e.newValue === '1';
+            try { sfxMuted = muted; } catch(e){}
+            try { const sm = document.getElementById('sfx-mute-toggle'); if (sm) sm.textContent = sfxMuted ? '🔇' : '🔊'; } catch(e){}
+          }
+        } catch (err) { /* ignore */ }
+      });
+
+      // Also apply settings when the page gains focus (useful if user changed settings in same browser)
+      function applyAudioSettingsFromStorage() {
+        try {
+          const mv = localStorage.getItem('musicVolume');
+          if (mv !== null) {
+            const vol = (parseInt(mv, 10) || 70) / 100;
+            try { if (menuMusic) menuMusic.volume = vol; } catch(e){}
+            try { if (typeof audioIngame !== 'undefined' && audioIngame) audioIngame.volume = vol; } catch(e){}
+            try { const mvEl = document.getElementById('music-volume'); if (mvEl) mvEl.value = String(Math.round(vol * 100)); } catch(e){}
+          }
+
+          const mm = localStorage.getItem('menuMuted');
+          if (mm === '1' || mm === '0') {
+            const muted = mm === '1';
+            try { if (menuMusic) menuMusic.muted = muted; } catch(e){}
+            try { if (typeof audioIngame !== 'undefined' && audioIngame) audioIngame.muted = muted; } catch(e){}
+            try { const mt = document.getElementById('mute-toggle'); if (mt && menuMusic) mt.textContent = menuMusic.muted ? '🔇' : '🔊'; } catch(e){}
+          }
+
+          const sv = localStorage.getItem('sfxVolume');
+          if (sv !== null) {
+            const v = (parseInt(sv, 10) || 80) / 100;
+            try { sfxVolume = v; } catch(e){}
+            try { if (audioHit) audioHit.volume = v; if (audioPoint) audioPoint.volume = Math.min(1.0, v * (sfxGainMap['point']||1)); } catch(e){}
+            try { const svEl = document.getElementById('sfx-volume'); if (svEl) svEl.value = String(Math.round(v * 100)); } catch(e){}
+          }
+
+          const sm = localStorage.getItem('sfxMuted');
+          if (sm === '1' || sm === '0') {
+            const muted = sm === '1';
+            try { sfxMuted = muted; } catch(e){}
+            try { const smBtn = document.getElementById('sfx-mute-toggle'); if (smBtn) smBtn.textContent = sfxMuted ? '🔇' : '🔊'; } catch(e){}
+          }
+        } catch (err) { /* ignore */ }
+      }
+
+      window.addEventListener('focus', applyAudioSettingsFromStorage);
+      // apply once immediately in case values were changed before DOMContentLoaded listener ran
+      try { applyAudioSettingsFromStorage(); } catch(e){}
+
+      // WebAudio setup for low-latency SFX (uses global audioCtx / sfxBuffers)
+      function decodeAudioDataSafe(arraybuffer) {
+        if (!audioCtx) return Promise.reject(new Error('No AudioContext'));
+        return audioCtx.decodeAudioData(arraybuffer).catch(() => null);
+      }
+
+      // Create AudioContext on DOMContentLoaded, resume on first interaction, start loading sfx buffers when available
+      try {
+        if (window.AudioContext || window.webkitAudioContext) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          // resume if suspended on browsers which block audio until interaction
+          if (audioCtx.state === 'suspended') {
+            const resumeCtx = () => { audioCtx.resume().catch(()=>{}); window.removeEventListener('click', resumeCtx); window.removeEventListener('keydown', resumeCtx); };
+            window.addEventListener('click', resumeCtx, { once: true });
+            window.addEventListener('keydown', resumeCtx, { once: true });
+          }
+          // also unlock audio and flush pending sfx on first interaction
+          const resumeCtx = () => { try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{}); } catch(e){}; unlockAudio(); };
+          window.addEventListener('click', resumeCtx, { once: true });
+          window.addEventListener('keydown', resumeCtx, { once: true });
+        }
+      } catch (e) { audioCtx = null; }
+
+      // helper to load SFX into buffer
+      async function loadSfx(name, path) {
+        if (!audioCtx) return null;
+        try {
+          const resp = await fetch(path);
+          const ab = await resp.arrayBuffer();
+          const buf = await decodeAudioDataSafe(ab);
+          if (buf) sfxBuffers[name] = buf;
+          return buf;
+        } catch (e) { return null; }
+      }
+
+      // load small SFX buffers (parallel)
+      const sfxLoads = [];
+      if (audioCtx) {
+        sfxLoads.push(loadSfx('hit', 'hit.mp3'));
+        sfxLoads.push(loadSfx('point', 'point.mp3'));
+        sfxLoads.push(loadSfx('power', 'power.mp3'));
+        sfxLoads.push(loadSfx('win', 'win.mp3'));
+        sfxLoads.push(loadSfx('lose', 'lose.mp3'));
+      }
+
+      // Fallback HTMLAudio for music and SFX if WebAudio not available
+      try {
+  audioHit = new Audio('hit.mp3'); audioHit.preload = 'auto'; audioHit.volume = sfxVolume;
+  audioIngame = new Audio('ingame.mp3'); audioIngame.loop = true; audioIngame.preload = 'auto'; audioIngame.volume = (document.getElementById('music-volume') ? (parseInt(document.getElementById('music-volume').value,10)||70)/100 : 0.7);
+  // ensure ingame audio respects saved menu mute to avoid starting audible
+  try { const savedMenuMuted = localStorage.getItem('menuMuted'); if (savedMenuMuted === '1' || savedMenuMuted === '0') audioIngame.muted = (savedMenuMuted === '1'); } catch(e){}
+        audioPoint = new Audio('point.mp3'); audioPoint.preload = 'auto'; audioPoint.volume = Math.min(1.0, sfxVolume * (sfxGainMap['point']||1));
+        audioPower = new Audio('power.mp3'); audioPower.preload = 'auto'; audioPower.volume = sfxVolume;
+        audioWin = new Audio('win.mp3'); audioWin.preload = 'auto'; audioWin.volume = sfxVolume;
+        audioLose = new Audio('lose.mp3'); audioLose.preload = 'auto'; audioLose.volume = sfxVolume;
+      } catch (e) {
+        console.warn('Cannot load HTMLAudio fallback', e);
+      }
+
+  // when buffers loaded, nothing to do now - playback will use buffer if present
+  Promise.all(sfxLoads).catch(() => {});
+
+  tryPlayMenuMusic();
+    });
+
+// Admin check and Reset Leaderboard button wiring
+(function(){
+  async function checkAdminAndWire() {
+    try {
+      const resp = await fetch('is_admin.php', { credentials: 'same-origin' });
+      const j = await resp.json();
+      if (j && j.is_admin) {
+        const btn = document.getElementById('reset-leaderboard-btn');
+        if (btn) {
+          btn.style.display = 'inline-block';
+          btn.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            if (!confirm('Reset leaderboard? This will remove all saved scores. Are you sure?')) return;
+            try {
+              const r = await fetch('reset_leaderboard.php', { method: 'POST', credentials: 'same-origin' });
+              const res = await r.json();
+              if (res && res.success) {
+                alert('Leaderboard telah direset');
+                // optionally reload leaderboard view
+                try { if (typeof loadLeaderboard === 'function') loadLeaderboard(); } catch(e){}
+              } else {
+                alert('Gagal mereset leaderboard: ' + (res.message || 'unknown'));
+              }
+            } catch (err) { console.error(err); alert('Error saat mereset leaderboard'); }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('is_admin check failed', err);
+    }
+  }
+  // run after short delay to ensure DOM elements exist
+  window.addEventListener('load', () => setTimeout(checkAdminAndWire, 250));
+})();
+    
+    // Data Emote
+    const emotes = [
+      { emoji: '🔥', type: 'boost', effect: 'speed' },
+      { emoji: '🛡️', type: 'boost', effect: 'paddle-up' },
+      { emoji: '🐢', type: 'nerf', effect: 'slow' },
+      { emoji: '💫', type: 'nerf', effect: 'confuse' },
+      // new power-ups
+      { emoji: '🔻', type: 'power', effect: 'shrink' },          // Shrink Opponent
+      { emoji: '⏳', type: 'power', effect: 'time-dilate' },     // Time Dilation
+      { emoji: '2x', type: 'power', effect: 'double-point' },   // Double Point
+      { emoji: '⏱️', type: 'power', effect: 'add-time' }         // Add +5s
+    ];
+    
+    // Game state
+    let maxTime = 60; // seconds
+    let maxPoint = 5;
+    let currentTime = 0;
+    let timerInterval = null;
+    let gameRunning = false;
+    let playerName = "Guest";
+    let currentDifficulty = "medium";
+  let playerId = 0; // will be set after login/signup
+
+    const arena = document.getElementById("arena");
+    const player = document.querySelector(".player");
+    const ai = document.querySelector(".ai");
+    const ball = document.getElementById("ball");
+    const playerScoreEl = document.getElementById("player-score");
+    const aiScoreEl = document.getElementById("ai-score");
+    const leaderboardBtn = document.getElementById("leaderboard-btn");
+    const loginBtn = document.getElementById("login-btn");
+    const signupBtn = document.getElementById("signup-btn");
+
+    let arenaH = 0, arenaW = 0;
+    let playerY = 0, aiY = 0, ballX = 0, ballY = 0;
+    let ballSize = 0;
+    let playerScore = 0, aiScore = 0;
+    let ballBaseSpeed = 2;
+    let ballSpeedX = 3, ballSpeedY = 3;
+    let ballSpeedMultiplier = 1;
+  // movement multipliers allow time-dilation to slow paddles without touching global tick
+  let playerMovementMultiplier = 1;
+  let rightMovementMultiplier = 1; // affects AI when controlled by player 2 (local multiplayer)
+
+  // AI speed (base values); tuned for smoother movement and harder play
+  const aiSpeedMap = { easy: 2, medium: 5, hard: 9 };
+  let currentAiSpeed = aiSpeedMap.easy;
+  // AI kinematic state for smooth movement (prevents jitter)
+  let aiVelocity = 0;
+
+    const keyState = {};
+    let invertControls = false;
+    let invertAI = false;
+  // when false, right paddle is controlled by player 2 (ArrowUp/ArrowDown)
+  let aiControlled = true;
+  // true while there is an active touch on the right half of the arena
+  let rightTouchActive = false;
+
+    let lastPaddleTouched = null;
+    const bounceCooldown = 50;
+    let lastBounceTime = 0;
+
+    let activeEmotes = [];
+    let activeEffects = [];
+  // SFX
+  let sfxVolume = 0.8;
+  let audioHit = null;
+  let audioIngame = null;
+  let audioPoint = null;
+  let audioPower = null;
+  let audioWin = null;
+  let audioLose = null;
+  // globals for WebAudio and SFX control (accessible by play* functions)
+  let audioCtx = null;
+  let sfxBuffers = {};
+  let sfxMuted = false;
+  // audio unlock / queue: many browsers block audio until user interaction
+  let userInteracted = false;
+  let pendingSfx = [];
+
+  // per-SFX gain multipliers (1 = normal, >1 louder)
+  const sfxGainMap = {
+    hit: 1.0,
+    point: 1.6, // louder
+    power: 1.0,
+    win: 1.0,
+    lose: 1.0
+  };
+
+  function unlockAudio() {
+    if (userInteracted) return;
+    userInteracted = true;
+    try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{}); } catch(e){}
+    // try play a tiny silent audio via HTMLAudio to unlock playback if needed
+    try {
+      const t = new Audio();
+      t.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+      t.play().catch(()=>{});
+    } catch(e){}
+    // flush pending SFX
+    while (pendingSfx.length) {
+      const fn = pendingSfx.shift();
+      try { fn(); } catch(e){}
+    }
+  }
+
+    function playHit() {
+      console.debug && console.debug('playHit called', !!audioCtx, !!sfxBuffers['hit'], !!audioHit, 'userInteracted=', userInteracted);
+      if (sfxMuted) return;
+      if (!userInteracted) { pendingSfx.push(()=>{ try { playHit(); } catch(e){} }); return; }
+      if (audioCtx && sfxBuffers['hit']) {
+        try {
+          const src = audioCtx.createBufferSource();
+          src.buffer = sfxBuffers['hit'];
+          const gain = audioCtx.createGain();
+          gain.gain.value = sfxVolume;
+          src.connect(gain).connect(audioCtx.destination);
+          src.start(0);
+        } catch (e) { console.debug && console.debug('playHit webaudio error', e); }
+        return;
+      }
+      if (!audioHit) { console.debug && console.debug('playHit: no html audio'); return; }
+      try { const a = audioHit.cloneNode(); a.volume = sfxVolume; a.play().catch(() => { console.debug && console.debug('playHit html audio play failed'); }); } catch (e) { try { audioHit.currentTime = 0; audioHit.volume = sfxVolume; audioHit.play().catch(() => { console.debug && console.debug('playHit html audio fallback failed'); }); } catch (e) { console.debug && console.debug('playHit final error', e); } }
+    }
+
+    function playPoint() {
+      console.debug && console.debug('playPoint called', !!audioCtx, !!sfxBuffers['point'], !!audioPoint, 'userInteracted=', userInteracted);
+      if (sfxMuted) return;
+      if (!userInteracted) { pendingSfx.push(()=>{ try { playPoint(); } catch(e){} }); return; }
+      if (audioCtx && sfxBuffers['point']) {
+        try {
+          const src = audioCtx.createBufferSource();
+          src.buffer = sfxBuffers['point'];
+          const gain = audioCtx.createGain();
+          const mult = Math.max(0, Number(sfxGainMap['point'] || 1));
+          gain.gain.value = Math.min(1.0, sfxVolume * mult);
+          src.connect(gain).connect(audioCtx.destination);
+          src.start(0);
+        } catch (e) { console.debug && console.debug('playPoint webaudio error', e); }
+        return;
+      }
+      if (!audioPoint) { console.debug && console.debug('playPoint: no html audio'); return; }
+      try { const a = audioPoint.cloneNode(); a.volume = Math.min(1.0, sfxVolume * (sfxGainMap['point']||1)); a.play().catch(() => { console.debug && console.debug('playPoint html audio play failed'); }); } catch (e) { try { audioPoint.currentTime = 0; audioPoint.volume = Math.min(1.0, sfxVolume * (sfxGainMap['point']||1)); audioPoint.play().catch(() => { console.debug && console.debug('playPoint html audio fallback failed'); }); } catch (e) { console.debug && console.debug('playPoint final error', e); } }
+    }
+
+    function playPower() {
+      console.debug && console.debug('playPower called', !!audioCtx, !!sfxBuffers['power'], !!audioPower, 'userInteracted=', userInteracted);
+      if (sfxMuted) return;
+      if (!userInteracted) { pendingSfx.push(()=>{ try { playPower(); } catch(e){} }); return; }
+      if (audioCtx && sfxBuffers['power']) {
+        try { const src = audioCtx.createBufferSource(); src.buffer = sfxBuffers['power']; const gain = audioCtx.createGain(); gain.gain.value = sfxVolume; src.connect(gain).connect(audioCtx.destination); src.start(0); } catch (e) { console.debug && console.debug('playPower webaudio error', e); }
+        return;
+      }
+      if (!audioPower) { console.debug && console.debug('playPower: no html audio'); return; }
+      try { const a = audioPower.cloneNode(); a.volume = sfxVolume; a.play().catch(() => { console.debug && console.debug('playPower html audio play failed'); }); } catch (e) { try { audioPower.currentTime = 0; audioPower.volume = sfxVolume; audioPower.play().catch(() => { console.debug && console.debug('playPower html audio fallback failed'); }); } catch (e) { console.debug && console.debug('playPower final error', e); } }
+    }
+
+    function playWin() {
+      if (sfxMuted) return;
+      if (audioCtx && sfxBuffers['win']) {
+        try { const src = audioCtx.createBufferSource(); src.buffer = sfxBuffers['win']; const gain = audioCtx.createGain(); gain.gain.value = sfxVolume; src.connect(gain).connect(audioCtx.destination); src.start(0); } catch (e) {}
+        return;
+      }
+      if (!audioWin) return;
+      try { audioWin.currentTime = 0; audioWin.volume = sfxVolume; audioWin.play().catch(() => {}); } catch (e) {}
+    }
+
+    function playLose() {
+      if (sfxMuted) return;
+      if (audioCtx && sfxBuffers['lose']) {
+        try { const src = audioCtx.createBufferSource(); src.buffer = sfxBuffers['lose']; const gain = audioCtx.createGain(); gain.gain.value = sfxVolume; src.connect(gain).connect(audioCtx.destination); src.start(0); } catch (e) {}
+        return;
+      }
+      if (!audioLose) return;
+      try { audioLose.currentTime = 0; audioLose.volume = sfxVolume; audioLose.play().catch(() => {}); } catch (e) {}
+    }
+
+    // Event Listeners
+    document.addEventListener("DOMContentLoaded", () => {
+      const timeRange = document.getElementById("time-range");
+      const pointRange = document.getElementById("point-range");
+      const timeInput = document.getElementById("time-input");
+      const pointInput = document.getElementById("point-input");
+
+      if (timeRange && timeInput) {
+        timeRange.addEventListener("input", () => timeInput.value = timeRange.value);
+        timeInput.addEventListener("input", () => timeRange.value = timeInput.value);
+      }
+      if (pointRange && pointInput) {
+        pointRange.addEventListener("input", () => pointInput.value = pointRange.value);
+        pointInput.addEventListener("input", () => pointRange.value = pointInput.value);
+      }
+
+      document.querySelectorAll('.difficulty-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const level = e.currentTarget.dataset.level;
+          if (level && aiSpeedMap[level] !== undefined) {
+            currentAiSpeed = aiSpeedMap[level];
+            currentDifficulty = level;
+          }
+          startGameWithDifficulty();
+        });
+  // ensure hover/focus visual works even if :hover is not applied
+  btn.addEventListener('mouseenter', () => { btn.classList.add('hovered-difficulty'); btn.classList.add(btn.dataset.level); });
+  btn.addEventListener('mouseleave', () => { btn.classList.remove('hovered-difficulty'); btn.classList.remove(btn.dataset.level); });
+  btn.addEventListener('focus', () => { btn.classList.add('hovered-difficulty'); btn.classList.add(btn.dataset.level); });
+  btn.addEventListener('blur', () => { btn.classList.remove('hovered-difficulty'); btn.classList.remove(btn.dataset.level); });
+      });
+
+
+      const multiBtn = document.getElementById("multi-btn");
+      const multiTooltip = document.getElementById('multi-tooltip');
+      if (multiBtn) {
+        // show tooltip on hover/focus
+        multiBtn.addEventListener('mouseenter', () => { if (multiTooltip) multiTooltip.style.display = 'block'; });
+        multiBtn.addEventListener('mouseleave', () => { if (multiTooltip) multiTooltip.style.display = 'none'; });
+        multiBtn.addEventListener('focus', () => { if (multiTooltip) multiTooltip.style.display = 'block'; });
+        multiBtn.addEventListener('blur', () => { if (multiTooltip) multiTooltip.style.display = 'none'; });
+      }
+
+      // Start true local multiplayer (2 user mode) when Local button is clicked
+      const multiLocalBtn = document.getElementById('multi-local-btn');
+      if (multiLocalBtn) {
+        multiLocalBtn.addEventListener('click', () => {
+          currentDifficulty = 'local';
+          aiControlled = false;
+          try { document.getElementById('ai-name-display').textContent = 'Player 2'; } catch(e){}
+          try { const mh = document.getElementById('multiplayer-hint'); if (mh) mh.style.display = 'block'; } catch(e){}
+          try { document.querySelector('.ai')?.classList.add('multiplayer'); } catch(e){}
+          startGameWithDifficulty();
+        });
+      }
+
+  // Leaderboard button
+  leaderboardBtn.addEventListener("click", showLeaderboard);
+  // Settings button (replaces Info) - open Info.php
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) settingsBtn.addEventListener('click', () => { window.location.href = 'Info.php'; });
+      
+      // Login button
+      loginBtn.addEventListener("click", () => {
+        document.getElementById("login-container").style.display = "flex";
+      });
+      
+      // Signup button
+      signupBtn.addEventListener("click", () => {
+        document.getElementById("signup-container").style.display = "flex";
+      });
+      
+      // Close leaderboard (uses closeLeaderboard to also exit fullscreen)
+      document.getElementById("close-leaderboard").addEventListener("click", () => {
+        closeLeaderboard();
+      });
+
+      // Close when clicking outside content (overlay)
+      const lbContainer = document.getElementById('leaderboard-container');
+      if (lbContainer) {
+        lbContainer.addEventListener('click', (ev) => {
+          if (ev.target && ev.target.id === 'leaderboard-container') closeLeaderboard();
+        });
+      }
+
+      // Close on Escape key
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') closeLeaderboard();
+      });
+      // Enter fullscreen button (only when user clicks it)
+      const enterFs = document.getElementById('enter-fullscreen');
+      if (enterFs) {
+        enterFs.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const container = document.getElementById('leaderboard-container');
+          try {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+              if (document.exitFullscreen) await document.exitFullscreen();
+              else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            } else {
+              if (container.requestFullscreen) await container.requestFullscreen();
+              else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+            }
+          } catch (e) { console.warn('Fullscreen toggle failed', e); }
+        });
+      }
+
+      // Keep enter-fullscreen icon in sync with fullscreen state
+      function updateFsButton() {
+        const fsBtn = document.getElementById('enter-fullscreen');
+        if (!fsBtn) return;
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        // when fullscreen, show an 'X' like close button (same size)
+        fsBtn.textContent = isFs ? '⤫' : '⤢';
+        fsBtn.title = isFs ? 'Exit fullscreen' : 'Enter fullscreen';
+      }
+      document.addEventListener('fullscreenchange', updateFsButton);
+      document.addEventListener('webkitfullscreenchange', updateFsButton);
+      
+      // Login submit
+      document.getElementById("login-submit").addEventListener("click", handleLogin);
+
+      // Login close (top-right X)
+      const loginCloseBtn = document.getElementById("login-close");
+      if (loginCloseBtn) loginCloseBtn.addEventListener("click", () => {
+        document.getElementById("login-container").style.display = "none";
+      });
+      
+      // Signup submit
+      document.getElementById("signup-submit").addEventListener("click", handleSignup);
+
+      // Account button and modal setup
+      const accountBtn = document.getElementById('account-btn');
+      if (accountBtn) {
+        accountBtn.addEventListener('click', () => {
+          // Navigate to the standalone account page instead of opening the in-page modal
+          window.location.href = 'account.html';
+        });
+      }
+
+      // New account modal controls (inline forms)
+      const accountShowPw = document.getElementById('account-showpw');
+      const showChangeUsernameBtn = document.getElementById('show-change-username');
+      const showChangePasswordBtn = document.getElementById('show-change-password');
+      const changeUsernameForm = document.getElementById('change-username-form');
+      const changePasswordForm = document.getElementById('change-password-form');
+      const newUsernameInput = document.getElementById('new-username');
+      const saveUsername = document.getElementById('save-username');
+      const cancelUsername = document.getElementById('cancel-username');
+      const newPasswordInput = document.getElementById('new-password');
+      const newPasswordConfirm = document.getElementById('new-password-confirm');
+      const savePassword = document.getElementById('save-password');
+      const cancelPassword = document.getElementById('cancel-password');
+
+      function refreshAccountDisplay(){
+        const name = localStorage.getItem('playerName') || playerName || 'Guest';
+        document.getElementById('account-username').textContent = name;
+        document.getElementById('account-password-mask').textContent = localStorage.getItem('savedPassword') ? '*'.repeat(8) : '********';
+        const ab = document.getElementById('account-btn'); if (ab) ab.textContent = name;
+      }
+
+      // close handler and logout
+      document.getElementById('account-close').addEventListener('click', () => {
+        document.getElementById('account-container').style.display = 'none';
+        if (changeUsernameForm) changeUsernameForm.style.display = 'none';
+        if (changePasswordForm) changePasswordForm.style.display = 'none';
+      });
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        playerName = 'Guest'; playerId = 0;
+        try { localStorage.removeItem('playerName'); localStorage.removeItem('playerId'); localStorage.removeItem('savedPassword'); } catch(e){}
+        updateAccountUI();
+        document.getElementById('account-container').style.display = 'none';
+      });
+
+      if (accountShowPw) {
+        accountShowPw.addEventListener('click', () => {
+          const pw = localStorage.getItem('savedPassword') || '';
+          const maskEl = document.getElementById('account-password-mask');
+          if (!pw) { maskEl.textContent = '********'; return; }
+          if (accountShowPw.textContent === 'Show') { maskEl.textContent = pw; accountShowPw.textContent = 'Hide'; }
+          else { maskEl.textContent = '*'.repeat(8); accountShowPw.textContent = 'Show'; }
+        });
+      }
+
+      if (showChangeUsernameBtn) showChangeUsernameBtn.addEventListener('click', ()=>{ if (changeUsernameForm) { changeUsernameForm.style.display='flex'; newUsernameInput.focus(); } });
+      if (cancelUsername) cancelUsername.addEventListener('click', ()=>{ if (changeUsernameForm) { changeUsernameForm.style.display='none'; newUsernameInput.value=''; } });
+      if (saveUsername) saveUsername.addEventListener('click', ()=>{
+        const v = (newUsernameInput.value||'').trim();
+        if (!v) { neonDB.showStatus('Please enter a valid username', true); newUsernameInput.focus(); return; }
+        playerName = v; try { localStorage.setItem('playerName', v); } catch(e){}
+        refreshAccountDisplay(); updateAccountUI(); if (changeUsernameForm) changeUsernameForm.style.display='none'; newUsernameInput.value='';
+        neonDB.showStatus('Username updated (local)');
+      });
+
+      if (showChangePasswordBtn) showChangePasswordBtn.addEventListener('click', ()=>{ if (changePasswordForm) { changePasswordForm.style.display='flex'; newPasswordInput.focus(); } });
+      if (cancelPassword) cancelPassword.addEventListener('click', ()=>{ if (changePasswordForm) { changePasswordForm.style.display='none'; newPasswordInput.value=''; newPasswordConfirm.value=''; } });
+      if (savePassword) savePassword.addEventListener('click', ()=>{
+        const a = (newPasswordInput.value||'');
+        const b = (newPasswordConfirm.value||'');
+        if (!a) { neonDB.showStatus('Please enter a new password', true); newPasswordInput.focus(); return; }
+        if (a !== b) { neonDB.showStatus('Passwords do not match', true); newPasswordConfirm.focus(); return; }
+        try { localStorage.setItem('savedPassword', a); } catch(e){}
+        document.getElementById('account-password-mask').textContent = '*'.repeat(8);
+        if (changePasswordForm) changePasswordForm.style.display='none'; newPasswordInput.value=''; newPasswordConfirm.value='';
+        neonDB.showStatus('Password updated (stored locally)');
+      });
+      
+      // Signup close (top-right X)
+      const signupCloseBtn = document.getElementById("signup-close");
+      if (signupCloseBtn) signupCloseBtn.addEventListener("click", () => {
+        document.getElementById("signup-container").style.display = "none";
+      });
+      
+  // Menu button (top-right X)
+  const menuBtnEl = document.getElementById("menu-btn");
+  if (menuBtnEl) menuBtnEl.addEventListener("click", () => { location.reload(); });
+
+  // Pause button (icon)
+  const pauseBtnEl = document.getElementById("pause-btn");
+  if (pauseBtnEl) pauseBtnEl.addEventListener("click", togglePause);
+    });
+
+    // Fungsi untuk menampilkan leaderboard (fetch and request fullscreen)
+    async function showLeaderboard() {
+      const container = document.getElementById('leaderboard-container');
+      const leaderboardBody = document.getElementById('leaderboard-body');
+      leaderboardBody.innerHTML = "<tr><td colspan='7'>Memuat leaderboard...</td></tr>";
+
+      try {
+        const scores = await neonDB.getLeaderboard();
+
+        if (!scores || scores.length === 0) {
+          leaderboardBody.innerHTML = "<tr><td colspan='7'>Belum ada skor yang tercatat</td></tr>";
+          container.style.display = 'flex';
+          return;
+        }
+
+        // populate rows
+        leaderboardBody.innerHTML = '';
+        scores.forEach((score, index) => {
+          const date = score.created_at ? new Date(score.created_at) : null;
+          const formattedDate = date ? `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}` : '';
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td class="player-name">${score.username || 'Guest'}</td>
+            <td class="player-score-cell">${score.player_score}</td>
+            <td class="ai-score-cell">${score.ai_score}</td>
+            <td class="difficulty-cell">${score.difficulty || ''}</td>
+            <td class="result-cell">${score.winner || ''}</td>
+            <td class="date-cell">${formattedDate}</td>
+          `;
+          // apply highlight: prefer provided winner field, otherwise compare scores
+          const playerScoreVal = Number(score.player_score) || 0;
+          const aiScoreVal = Number(score.ai_score) || 0;
+          const winner = (score.winner || '').toLowerCase();
+
+          if (winner === 'player' || (winner === '' && playerScoreVal > aiScoreVal)) {
+            row.querySelector('.player-score-cell')?.classList.add('highlight-player');
+            row.querySelector('.player-name')?.classList.add('highlight-player');
+          } else if (winner === 'ai' || (winner === '' && aiScoreVal > playerScoreVal)) {
+            row.querySelector('.ai-score-cell')?.classList.add('highlight-ai');
+          }
+
+          leaderboardBody.appendChild(row);
+        });
+
+        // If on small screen, also populate stacked cards view
+        const cardsContainer = document.getElementById('leaderboard-cards');
+        if (cardsContainer) {
+          cardsContainer.innerHTML = '';
+          if (window.innerWidth <= 600) {
+            scores.forEach((score, index) => {
+              const date = score.created_at ? new Date(score.created_at) : null;
+              const formattedDate = date ? `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}` : '';
+              const card = document.createElement('div');
+              card.className = 'lb-card';
+              card.innerHTML = `
+                <div class="row"><div class="label">#${index+1} ${score.username || 'Guest'}</div><div class="value">${score.player_score} - ${score.ai_score}</div></div>
+                <div class="row"><div class="label">Diff</div><div class="value">${score.difficulty || ''}</div></div>
+                <div class="row"><div class="label">Result</div><div class="value">${score.winner || ''}</div></div>
+                <div class="row"><div class="label">Date</div><div class="value">${formattedDate}</div></div>
+              `;
+              // highlight winner on card
+              const playerScoreVal = Number(score.player_score) || 0;
+              const aiScoreVal = Number(score.ai_score) || 0;
+              const winner = (score.winner || '').toLowerCase();
+              if (winner === 'player' || (winner === '' && playerScoreVal > aiScoreVal)) card.querySelector('.value')?.classList.add('highlight-player');
+              else if (winner === 'ai' || (winner === '' && aiScoreVal > playerScoreVal)) card.querySelector('.value')?.classList.add('highlight-ai');
+              cardsContainer.appendChild(card);
+            });
+          } else {
+            cardsContainer.innerHTML = '';
+          }
+        }
+
+        // show leaderboard inline; do not force fullscreen automatically
+        container.style.display = 'flex';
+        // make enter-fullscreen button visible when supported
+        try {
+          const fsBtn = document.getElementById('enter-fullscreen');
+          if (fsBtn) fsBtn.style.display = 'inline-block';
+        } catch (e) {}
+
+      } catch (error) {
+        console.error('Gagal memuat leaderboard', error);
+        leaderboardBody.innerHTML = "<tr><td colspan='7'>Gagal memuat leaderboard</td></tr>";
+        document.getElementById('leaderboard-container').style.display = 'flex';
+      }
+    }
+
+    // Close leaderboard and exit fullscreen if active
+    function closeLeaderboard() {
+      const container = document.getElementById('leaderboard-container');
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(()=>{});
+        } else if (document.webkitFullscreenElement) {
+          document.webkitExitFullscreen && document.webkitExitFullscreen();
+        }
+      } catch (e) {}
+      container.style.display = 'none';
+  try { if (typeof updateFsButton === 'function') updateFsButton(); } catch(e) {}
+
+  // After closing leaderboard, return to main menu and hide game view (useful when leaderboard shown after a match)
+  try {
+    const menu = document.getElementById('menu-screen');
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) gameContainer.style.display = 'none';
+    if (menu) menu.style.display = 'flex';
+    // stop ingame music if playing
+    try { if (typeof audioIngame !== 'undefined' && audioIngame && !audioIngame.paused) { audioIngame.pause(); audioIngame.currentTime = 0; } } catch(e) {}
+  } catch(e) {}
+    }
+
+    // Fungsi untuk login
+  async function handleLogin() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      if (!username || !password) {
+        neonDB.showStatus('Silakan isi username dan password!', true);
+        return;
+      }
+
+      try {
+        const result = await neonDB.login(username, password);
+
+        if (result.success) {
+          playerName = username;
+          playerId = result.user_id ? (parseInt(result.user_id, 10) || 0) : playerId;
+          document.getElementById("login-container").style.display = "none";
+          try { localStorage.setItem('playerName', username); localStorage.setItem('playerId', playerId); } catch(e){}
+          updateAccountUI();
+          try { updateNameDisplays(); } catch(e){}
+          neonDB.showStatus(`Login berhasil sebagai ${username}!`);
+        } else {
+          neonDB.showStatus(result.message || 'Login gagal', true);
+        }
+      } catch (error) {
+        neonDB.showStatus('Terjadi kesalahan saat login', true);
+      }
+    }
+
+    // Fungsi untuk signup
+  async function handleSignup() {
+      const username = document.getElementById("signup-username").value;
+      const password = document.getElementById("signup-password").value;
+      const confirm = document.getElementById("signup-confirm").value;
+
+      if (!username || !password || !confirm) {
+        neonDB.showStatus('Silakan isi semua kolom!', true);
+        return;
+      }
+      
+      if (password !== confirm) {
+        neonDB.showStatus('Password tidak cocok!', true);
+        return;
+      }
+      
+      if (password.length < 6) {
+        neonDB.showStatus('Password minimal 6 karakter!', true);
+        return;
+      }
+
+      try {
+        const result = await neonDB.signup(username, password);
+
+        if (result.success) {
+          playerName = username;
+          playerId = result.user_id ? (parseInt(result.user_id, 10) || 0) : playerId;
+          document.getElementById("signup-container").style.display = "none";
+          try { localStorage.setItem('playerName', username); localStorage.setItem('playerId', playerId); } catch(e){}
+          updateAccountUI();
+          try { updateNameDisplays(); } catch(e){}
+          neonDB.showStatus(`Signup berhasil! Selamat datang ${username}`);
+        } else {
+          neonDB.showStatus(result.message || 'Signup gagal', true);
+        }
+      } catch (error) {
+        neonDB.showStatus('Terjadi kesalahan saat signup', true);
+      }
+    }
+
+    // Fungsi untuk pause game
+    function togglePause() {
+      gameRunning = !gameRunning;
+      const pauseBtn = document.getElementById("pause-btn");
+      if (!pauseBtn) return;
+
+      // Swap visible symbol (use .pause-symbol text) and accessible title
+      const symEl = pauseBtn.querySelector('.pause-symbol') || pauseBtn.querySelector('i');
+      if (gameRunning) {
+        if (symEl) { try { symEl.textContent = '⏸'; } catch(e){} }
+        pauseBtn.setAttribute('title', 'Pause');
+        pauseBtn.setAttribute('aria-label', 'Pause');
+        startTimer();
+        try {
+          const mutedNow = (localStorage.getItem('menuMuted') === '1') || (menuMusic && menuMusic.muted);
+          if (audioIngame && !mutedNow && audioIngame.paused) audioIngame.play().catch(() => {});
+        } catch (e) {}
+        requestAnimationFrame(gameLoop);
+      } else {
+        if (symEl) { try { symEl.textContent = '▶'; } catch(e){} }
+        pauseBtn.setAttribute('title', 'Resume');
+        pauseBtn.setAttribute('aria-label', 'Resume');
+        clearInterval(timerInterval);
+        try { if (audioIngame && !audioIngame.paused) { audioIngame.pause(); } } catch (e) {}
+      }
+    }
+
+    // Fungsi untuk spawn emote
+    function spawnEmote() {
+      if (!gameRunning || !arena) return;
+
+      const size = 32;
+      const margin = 20;
+      const aw = arena.clientWidth;
+      const ah = arena.clientHeight;
+
+      const base = emotes[Math.floor(Math.random() * emotes.length)];
+      const emote = { ...base, size };
+
+      const maxX = Math.max(0, aw - margin * 2 - size);
+      const maxY = Math.max(0, ah - margin * 2 - size);
+      const x = margin + Math.random() * maxX;
+      const y = margin + Math.random() * maxY;
+
+      const el = document.createElement("div");
+      el.className = "emote";
+      el.textContent = emote.emoji;
+      el.style.position = "absolute";
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      el.style.width = size + "px";
+      el.style.height = size + "px";
+      el.style.lineHeight = size + "px";
+      el.style.textAlign = "center";
+      el.style.fontSize = "20px";
+      el.style.pointerEvents = "none";
+      el.style.userSelect = "none";
+      el.style.zIndex = 50;
+      el.style.transition = "transform 0.12s ease";
+
+      emote.x = x;
+      emote.y = y;
+      emote.el = el;
+
+      activeEmotes.push(emote);
+      arena.appendChild(el);
+
+      setTimeout(() => {
+        if (activeEmotes.includes(emote)) {
+          try { emote.el.remove(); } catch (e) {}
+          activeEmotes = activeEmotes.filter(e => e !== emote);
+        }
+      }, 5000);
+    }
+
+    setInterval(() => {
+      if (gameRunning) spawnEmote();
+    }, 7000);
+
+    // Fungsi untuk menerapkan efek emote
+    function applyEmoteEffect(emote, target) {
+      target = target || 'player';
+      if (!emote || !emote.effect) return;
+
+  // allow some variability in durations as requested (use ms)
+  const durBase = 1000 * 5; // default 5s
+  const dur = (emote.effect === 'shrink') ? (1000 * (6 + Math.floor(Math.random() * 3))) : // 6-8s
+      (emote.effect === 'time-dilate') ? (1000 * (5 + Math.floor(Math.random() * 3))) : //5-7s
+      durBase;
+
+      const getPaddleEl = (t) => (t === 'ai' ? ai : player);
+      const getPaddleHeight = (t) => getPaddleEl(t).clientHeight;
+
+      switch (emote.effect) {
+        case 'speed': {
+          const boostFactor = 1.6;
+          ballSpeedMultiplier *= boostFactor;
+          if (target === 'player') ballSpeedX = Math.abs(ballSpeedX) + 0.3;
+          else if (target === 'ai') ballSpeedX = -Math.abs(ballSpeedX) - 0.3;
+
+          const id = setTimeout(() => {
+            ballSpeedMultiplier /= boostFactor;
+            activeEffects = activeEffects.filter(a => a.id !== id);
+          }, dur);
+          activeEffects.push({ id, type: 'speed', target });
+          break;
+        }
+
+        case 'paddle-up': {
+          const el = getPaddleEl(target);
+          if (!el) break;
+
+          // Ensure original height is stored once so multiple boosts stack and revert correctly
+          const origStored = el.dataset.origHeight ? parseInt(el.dataset.origHeight, 10) : null;
+          const original = origStored || el.clientHeight;
+          if (!origStored) el.dataset.origHeight = String(original);
+
+          // compute extra based on the original (not the current height)
+          const extra = Math.round(original * 0.5);
+
+          // accumulate extras so multiple effects stack
+          const prevAccum = parseInt(el.dataset.extraAccum || '0', 10) || 0;
+          const newAccum = prevAccum + extra;
+          el.dataset.extraAccum = String(newAccum);
+          el.style.height = (original + newAccum) + "px";
+
+          const id = setTimeout(() => {
+            // remove this effect's extra from the accumulator
+            const nowAccum = Math.max(0, (parseInt(el.dataset.extraAccum || '0', 10) || 0) - extra);
+            if (nowAccum <= 0) {
+              // restore original and cleanup data attributes
+              if (el.dataset.origHeight) el.style.height = el.dataset.origHeight + "px";
+              delete el.dataset.origHeight;
+              delete el.dataset.extraAccum;
+            } else {
+              el.dataset.extraAccum = String(nowAccum);
+              el.style.height = (parseInt(el.dataset.origHeight || String(original), 10) + nowAccum) + "px";
+            }
+            activeEffects = activeEffects.filter(a => a.id !== id);
+          }, dur);
+          activeEffects.push({ id, type: 'paddle-up', target, extra });
+          break;
+        }
+
+        case 'slow': {
+          const slowFactor = 0.6;
+          const prevAi = currentAiSpeed;
+          ballSpeedMultiplier *= slowFactor;
+          if (target === 'ai') currentAiSpeed = Math.max(1, Math.round(currentAiSpeed * 0.5));
+
+          const id = setTimeout(() => {
+            ballSpeedMultiplier /= slowFactor;
+            if (target === 'ai') currentAiSpeed = prevAi;
+            activeEffects = activeEffects.filter(a => a.id !== id);
+          }, dur);
+          activeEffects.push({ id, type: 'slow', target });
+          break;
+        }
+
+        case 'confuse': {
+          if (target === 'ai') {
+            invertAI = true;
+            const id = setTimeout(() => {
+              invertAI = false;
+              activeEffects = activeEffects.filter(a => a.id !== id);
+            }, dur);
+            activeEffects.push({ id, type: 'confuse', target });
+          } else {
+            invertControls = true;
+            const id = setTimeout(() => {
+              invertControls = false;
+              activeEffects = activeEffects.filter(a => a.id !== id);
+            }, dur);
+            activeEffects.push({ id, type: 'confuse', target });
+          }
+          break;
+        }
+        
+        // --- New power-ups ---
+        case 'shrink': {
+          // shrink the target paddle by ~35% for dur, prevent stacking
+          const el = getPaddleEl(target);
+          if (!el) break;
+          if (el.dataset.shrunk === '1') break; // prevent stacking
+          const original = el.clientHeight;
+          el.dataset.origHeight = String(original);
+          const newH = Math.max(20, Math.round(original * 0.65));
+          // quick shrink animation + red flicker
+          el.style.transition = 'height 160ms ease, box-shadow 180ms ease';
+          el.style.height = newH + 'px';
+          const oldShadow = el.style.boxShadow;
+          el.style.boxShadow = '0 0 8px rgba(255,0,0,0.9), 0 0 18px rgba(255,40,40,0.6)';
+          el.dataset.shrunk = '1';
+
+          const id = setTimeout(() => {
+            try { el.style.height = el.dataset.origHeight + 'px'; } catch (e) {}
+            try { el.style.boxShadow = oldShadow || ''; } catch (e) {}
+            delete el.dataset.origHeight;
+            delete el.dataset.shrunk;
+            activeEffects = activeEffects.filter(a => a.id !== id);
+          }, dur);
+          activeEffects.push({ id, type: 'shrink', target });
+          break;
+        }
+
+        case 'time-dilate': {
+          // slow target movement by ~40% (i.e., multiplier 0.6)
+          const slowMult = 0.6;
+          if (target === 'ai') {
+            if (aiControlled) {
+              // slow AI movement
+              const prev = currentAiSpeed;
+              currentAiSpeed = Math.max(1, Math.round(currentAiSpeed * slowMult));
+              const aEl = document.getElementById('ai-name-display');
+              const overlay = document.createElement('span');
+              overlay.className = 'time-dilate-badge';
+              overlay.textContent = ' ⏳';
+              overlay.style.color = '#b57aff';
+              try { aEl && aEl.appendChild(overlay); } catch (e) {}
+
+              const id = setTimeout(() => {
+                currentAiSpeed = prev;
+                try { overlay.remove(); } catch (e) {}
+                activeEffects = activeEffects.filter(a => a.id !== id);
+              }, dur);
+              activeEffects.push({ id, type: 'time-dilate', target });
+            } else {
+              // right paddle is controlled by player 2 (local) - slow their input multiplier
+              const prevR = rightMovementMultiplier || 1;
+              rightMovementMultiplier = slowMult;
+              const aEl = document.getElementById('ai-name-display');
+              const overlay = document.createElement('span');
+              overlay.className = 'time-dilate-badge';
+              overlay.textContent = ' ⏳';
+              overlay.style.color = '#b57aff';
+              try { aEl && aEl.appendChild(overlay); } catch (e) {}
+
+              const id = setTimeout(() => {
+                rightMovementMultiplier = prevR;
+                try { overlay.remove(); } catch (e) {}
+                activeEffects = activeEffects.filter(a => a.id !== id);
+              }, dur);
+              activeEffects.push({ id, type: 'time-dilate', target });
+            }
+          } else {
+            // slow player movement (multiplier applied in updatePlayerControl)
+            const prev = playerMovementMultiplier || 1;
+            playerMovementMultiplier = slowMult;
+            const pEl = document.getElementById('player-name-display');
+            const badge = document.createElement('span');
+            badge.className = 'time-dilate-badge';
+            badge.textContent = ' ⏳';
+            badge.style.color = '#b57aff';
+            try { pEl && pEl.appendChild(badge); } catch (e) {}
+
+            const id = setTimeout(() => {
+              playerMovementMultiplier = prev;
+              try { badge.remove(); } catch (e) {}
+              activeEffects = activeEffects.filter(a => a.id !== id);
+            }, dur);
+            activeEffects.push({ id, type: 'time-dilate', target });
+          }
+          break;
+        }
+
+        case 'double-point': {
+          // mark target so that the next score(s) in the dur window award double
+          const id = setTimeout(() => {
+            activeEffects = activeEffects.filter(a => a.id !== id);
+          }, dur);
+          activeEffects.push({ id, type: 'double-point', target });
+          // visual cue near target name
+          try {
+            const nameEl = (target === 'ai') ? document.getElementById('ai-name-display') : document.getElementById('player-name-display');
+            const badge = document.createElement('span');
+            badge.className = 'double-badge';
+            badge.textContent = '✨';
+            badge.style.marginLeft = '6px';
+            badge.style.fontSize = '14px';
+            nameEl && nameEl.appendChild(badge);
+            setTimeout(() => { try { badge.remove(); } catch(e){} }, Math.min(dur, 3500));
+          } catch (e) {}
+          break;
+        }
+
+        case 'add-time': {
+          // add +5 seconds immediately to currentTime
+          currentTime += 5;
+          // show small hourglass near timer
+          try {
+            const t = document.getElementById('timer');
+            const ad = document.createElement('div');
+            ad.className = 'time-add-popup';
+            ad.textContent = '⏳+5s';
+            ad.style.position = 'absolute';
+            const rect = t.getBoundingClientRect();
+            ad.style.left = (rect.left + rect.width/2 - 24) + 'px';
+            ad.style.top = (rect.top - 28) + 'px';
+            ad.style.padding = '6px 8px';
+            ad.style.background = 'rgba(0,0,0,0.6)';
+            ad.style.color = '#fff';
+            ad.style.borderRadius = '6px';
+            ad.style.zIndex = 120;
+            document.body.appendChild(ad);
+            setTimeout(() => { try { ad.remove(); } catch (e) {} }, 1400);
+          } catch (e) {}
+          break;
+        }
+      }
+    }
+
+    // Fungsi untuk memulai game
+    function startGameWithDifficulty() {
+      const menu = document.getElementById("menu-screen");
+      const container = document.getElementById("game-container");
+      if (menu) menu.style.display = "none";
+  // stop menu music when entering game
+  try { stopMenuMusic(); } catch (e) {}
+      if (container) container.style.display = "block";
+
+      const timeRange = document.getElementById("time-range");
+      const pointRange = document.getElementById("point-range");
+
+      maxTime = timeRange ? parseInt(timeRange.value) * 60 : 60;
+      maxPoint = pointRange ? parseInt(pointRange.value) : 5;
+      currentTime = maxTime;
+      gameRunning = true;
+
+      arenaH = arena.clientHeight;
+      arenaW = arena.clientWidth;
+      ballSize = ball.clientWidth;
+
+      const playerPaddleH = player.clientHeight;
+      playerY = arenaH / 2 - playerPaddleH / 2;
+      aiY = playerY;
+      ballX = arenaW / 2;
+      ballY = arenaH / 2;
+
+  ballSpeedMultiplier = 1;
+      ballBaseSpeed = 2;
+      ballSpeedX = ballBaseSpeed * (Math.random() < 0.5 ? -1 : 1);
+      ballSpeedY = ballBaseSpeed * (Math.random() < 0.5 ? -1 : 1);
+
+      playerScore = 0;
+      aiScore = 0;
+      playerScoreEl.textContent = playerScore;
+      aiScoreEl.textContent = aiScore;
+
+      lastPaddleTouched = null;
+      invertAI = false;
+      invertControls = false;
+      // ensure no lingering multipliers or shrunk paddles from previous games
+      try {
+        playerMovementMultiplier = 1;
+        rightMovementMultiplier = 1;
+        const pEl = document.querySelector('.player');
+        const aEl = document.querySelector('.ai');
+        if (pEl && pEl.dataset.origHeight) { pEl.style.height = pEl.dataset.origHeight + 'px'; delete pEl.dataset.origHeight; delete pEl.dataset.shrunk; }
+        if (aEl && aEl.dataset.origHeight) { aEl.style.height = aEl.dataset.origHeight + 'px'; delete aEl.dataset.origHeight; delete aEl.dataset.shrunk; }
+      } catch (e) {}
+      updateTimerUI();
+      startTimer();
+  // ensure name labels are up-to-date when game starts
+  try { updateNameDisplays(); } catch(e) {}
+  try {
+    if (audioIngame) {
+      audioIngame.currentTime = 0;
+      const mutedNow = (localStorage.getItem('menuMuted') === '1') || (menuMusic && menuMusic.muted);
+      if (!mutedNow) audioIngame.play().catch(() => {});
+    }
+  } catch (e) {}
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Update account UI: hide login/signup, show account button when logged in
+    function updateAccountUI() {
+      const lb = document.getElementById('login-btn');
+      const sb = document.getElementById('signup-btn');
+      const ab = document.getElementById('account-btn');
+      try {
+        const storedName = localStorage.getItem('playerName');
+        if (storedName && storedName !== 'Guest') playerName = storedName;
+      } catch(e){}
+      if (playerName && playerName !== 'Guest') {
+        if (lb) lb.style.display = 'none';
+        if (sb) sb.style.display = 'none';
+        if (ab) { ab.style.display = 'inline-block'; ab.textContent = playerName; }
+      } else {
+        if (lb) lb.style.display = 'inline-block';
+        if (sb) sb.style.display = 'inline-block';
+        if (ab) { ab.style.display = 'none'; ab.textContent = 'Account'; }
+      }
+  // also update in-game name displays (player and AI difficulty)
+  try { updateNameDisplays(); } catch (e) {}
+    }
+
+    // initialize account UI on load
+    try { const stored = localStorage.getItem('playerName'); if (stored) playerName = stored; } catch(e){}
+    updateAccountUI();
+
+    // Update in-game name labels (player and AI difficulty)
+    function updateNameDisplays() {
+      try {
+        const pEl = document.getElementById('player-name-display');
+        const aEl = document.getElementById('ai-name-display');
+        const name = (playerName && playerName !== '') ? playerName : 'Guest';
+        if (pEl) pEl.textContent = name;
+        const dif = (currentDifficulty && currentDifficulty !== '') ? currentDifficulty : 'medium';
+        const cap = dif.charAt(0).toUpperCase() + dif.slice(1);
+        if (aEl) aEl.textContent = `AI (${cap})`;
+      } catch (e) { /* ignore */ }
+    }
+
+    // Fungsi timer
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (gameRunning) {
+          currentTime--;
+          updateTimerUI();
+          if (currentTime <= 0) endGame("Waktu habis!");
+        }
+      }, 1000);
+    }
+    
+    function updateTimerUI() {
+      const min = String(Math.floor(currentTime / 60)).padStart(2, "0");
+      const sec = String(currentTime % 60).padStart(2, "0");
+      const el = document.getElementById("timer");
+      if (el) el.textContent = `${min}:${sec}`;
+    }
+
+    // Kontrol pemain
+    document.addEventListener("keydown", e => keyState[e.key.toLowerCase()] = true);
+    document.addEventListener("keyup",   e => keyState[e.key.toLowerCase()] = false);
+
+    function updatePlayerControl(playerPaddleH) {
+      // Left paddle (blue) only responds to W/S
+      const upKeys = ["w"];
+      const downKeys = ["s"];
+      let up = upKeys.some(k => keyState[k]);
+      let down = downKeys.some(k => keyState[k]);
+
+      if (invertControls) {
+        const tmp = up;
+        up = down;
+        down = tmp;
+      }
+
+      const baseSpeed = 6 * (playerMovementMultiplier || 1);
+      if (up) playerY -= baseSpeed;
+      if (down) playerY += baseSpeed;
+      clampPlayer(playerPaddleH);
+    }
+
+    if (arena) {
+      // Remove any simple single-touch handlers and implement multitouch mapping.
+      // Left-half touches => left paddle, Right-half touches => right paddle.
+      const ongoingTouches = {};
+
+      function handleArenaTouch(ev) {
+        if (!gameRunning) return;
+        if (ev.type === 'touchmove') ev.preventDefault();
+        // detailed debug: log touch event type, number of touches, arena rect and paddle rects
+        try {
+          const rectDbg = arena.getBoundingClientRect();
+          const pRect = player.getBoundingClientRect();
+          const aRect = ai.getBoundingClientRect();
+          console.debug && console.debug('arena touch', ev.type, 'touches=', ev.touches ? ev.touches.length : 0, 'arenaRect=', {left:rectDbg.left,top:rectDbg.top,width:rectDbg.width,height:rectDbg.height}, 'playerRect=', {left:pRect.left,top:pRect.top,width:pRect.width,height:pRect.height}, 'aiRect=', {left:aRect.left,top:aRect.top,width:aRect.width,height:aRect.height});
+        } catch(e) { console.debug && console.debug('arena touch debug failed', e); }
+        const rect = arena.getBoundingClientRect();
+        // update / add all current touches
+        const touches = ev.touches || [];
+        for (let i = 0; i < touches.length; i++) {
+          const t = touches[i];
+          const x = t.clientX - rect.left;
+          const y = t.clientY - rect.top;
+          const isLeft = x < rect.width / 2;
+          ongoingTouches[t.identifier] = { x, y, isLeft };
+          try { console.debug && console.debug(' touch', i, 'id', t.identifier, 'clientX', t.clientX, 'clientY', t.clientY, 'relX', x, 'relY', y, 'isLeft', isLeft); } catch(e) {}
+        }
+
+        // compute average y per side to allow multiple touches per side
+        let leftSum = 0, leftCount = 0, rightSum = 0, rightCount = 0;
+        Object.values(ongoingTouches).forEach(p => {
+          if (p.isLeft) { leftSum += p.y; leftCount++; }
+          else { rightSum += p.y; rightCount++; }
+        });
+
+        const playerPaddleH = player.clientHeight;
+        const aiPaddleH = ai.clientHeight;
+
+        if (leftCount > 0) {
+          const avgLeft = leftSum / leftCount;
+          playerY = avgLeft - playerPaddleH / 2;
+          clampPlayer(playerPaddleH);
+        }
+
+        if (rightCount > 0) {
+          const avgRight = rightSum / rightCount;
+          // Right-half touches should control the right paddle while the touch is active.
+          // This temporarily overrides AI movement so the paddle follows the touch.
+          aiY = avgRight - aiPaddleH / 2;
+          aiY = Math.max(0, Math.min(arenaH - aiPaddleH, aiY));
+          rightTouchActive = true;
+          try { console.debug && console.debug('right touch avgY', avgRight, 'rightCount', rightCount); } catch(e) {}
+        } else {
+          // no right-side touch currently
+          rightTouchActive = false;
+        }
+      }
+
+      function handleArenaTouchEnd(ev) {
+        const changed = ev.changedTouches || [];
+        for (let i = 0; i < changed.length; i++) {
+          delete ongoingTouches[changed[i].identifier];
+        }
+
+        // Recompute whether any remaining touches are on the right side
+  let anyRight = false;
+  Object.values(ongoingTouches).forEach(p => { if (!anyRight && !p.isLeft) anyRight = true; });
+  rightTouchActive = anyRight;
+  try { console.debug && console.debug('touchend remaining rightTouchActive=', rightTouchActive, 'ongoing', Object.keys(ongoingTouches).length); } catch(e) {}
+      }
+
+      arena.addEventListener('touchstart', handleArenaTouch, { passive: true });
+      arena.addEventListener('touchmove', handleArenaTouch, { passive: false });
+      arena.addEventListener('touchend', handleArenaTouchEnd, { passive: true });
+      arena.addEventListener('touchcancel', handleArenaTouchEnd, { passive: true });
+
+      // Add touch listeners to paddle elements themselves in case touches land on the paddles.
+      // These simply forward to the arena handler by creating a synthetic event-like object.
+      const forwardTouch = (ev) => {
+        try {
+          // create a lightweight wrapper mimicking touches array with clientX/Y
+          const rect = arena.getBoundingClientRect();
+          const touches = [];
+          // use changedTouches if present
+          const src = ev.changedTouches && ev.changedTouches.length ? ev.changedTouches : ev.touches || [];
+          for (let i = 0; i < src.length; i++) {
+            const t = src[i];
+            touches.push({ clientX: t.clientX, clientY: t.clientY, identifier: t.identifier });
+          }
+          // call handler with an object that contains touches and type
+          handleArenaTouch({ type: ev.type, touches });
+        } catch (e) { console.debug && console.debug('forwardTouch failed', e); }
+      };
+      player.addEventListener('touchstart', forwardTouch, { passive: true });
+      player.addEventListener('touchmove', forwardTouch, { passive: false });
+      player.addEventListener('touchend', handleArenaTouchEnd, { passive: true });
+      ai.addEventListener('touchstart', forwardTouch, { passive: true });
+      ai.addEventListener('touchmove', forwardTouch, { passive: false });
+      ai.addEventListener('touchend', handleArenaTouchEnd, { passive: true });
+
+      // Also attach direct overlay handlers for reliable multiplayer touch control
+      try {
+        const leftZone = arena.querySelector('.touch-left');
+        const rightZone = arena.querySelector('.touch-right');
+        if (leftZone) {
+          // Prefer Pointer Events (more reliable & smooth). If supported, use pointer handlers.
+          if (window.PointerEvent) {
+            let leftPointerDown = false;
+            leftZone.addEventListener('pointerdown', (e) => {
+              if (!gameRunning) return; if (e.pointerType === 'mouse' && e.button !== 0) return; e.preventDefault(); leftPointerDown = true;
+              const r = arena.getBoundingClientRect(); const y = e.clientY - r.top; playerY = y - player.clientHeight/2; clampPlayer(player.clientHeight);
+            });
+            window.addEventListener('pointermove', (e) => {
+              if (!gameRunning) return; if (!leftPointerDown) return; const r = arena.getBoundingClientRect(); const y = e.clientY - r.top; playerY = y - player.clientHeight/2; clampPlayer(player.clientHeight);
+            });
+            window.addEventListener('pointerup', (e) => { leftPointerDown = false; });
+          } else {
+            leftZone.addEventListener('touchstart', (e) => { if (!gameRunning) return; e.preventDefault(); const r = arena.getBoundingClientRect(); const t = e.touches[0]; const y = t.clientY - r.top; playerY = y - player.clientHeight/2; clampPlayer(player.clientHeight); }, { passive: false });
+            leftZone.addEventListener('touchmove', (e) => { if (!gameRunning) return; e.preventDefault(); const r = arena.getBoundingClientRect(); const t = e.touches[0]; const y = t.clientY - r.top; playerY = y - player.clientHeight/2; clampPlayer(player.clientHeight); }, { passive: false });
+          }
+        }
+        if (rightZone) {
+          rightZone.addEventListener('touchstart', (e) => {
+            if (!gameRunning) return;
+            e.preventDefault();
+            // remember previous AI state so we can restore it when touch ends
+            if (typeof window._prevAiControlled === 'undefined') window._prevAiControlled = aiControlled;
+            aiControlled = false; // temporarily hand control to touch
+            const r = arena.getBoundingClientRect();
+            const t = e.touches[0];
+            const y = t.clientY - r.top;
+            aiY = y - ai.clientHeight/2;
+            aiY = Math.max(0, Math.min(arenaH - ai.clientHeight, aiY));
+            rightTouchActive = true;
+          }, { passive: false });
+          rightZone.addEventListener('touchmove', (e) => {
+            if (!gameRunning) return;
+            e.preventDefault();
+            const r = arena.getBoundingClientRect();
+            const t = e.touches[0];
+            const y = t.clientY - r.top;
+            aiY = y - ai.clientHeight/2;
+            aiY = Math.max(0, Math.min(arenaH - ai.clientHeight, aiY));
+            rightTouchActive = true;
+          }, { passive: false });
+          rightZone.addEventListener('touchend', (e) => {
+            rightTouchActive = false;
+            if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+          }, { passive: true });
+          rightZone.addEventListener('touchcancel', (e) => {
+            rightTouchActive = false;
+            if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+          }, { passive: true });
+        }
+      } catch (e) { console.debug && console.debug('overlay touch attach failed', e); }
+
+      // Keep mouse drag for left paddle (desktop)
+      arena.addEventListener("mousemove", e => {
+        if (!gameRunning) return;
+        if (e.buttons !== 1) return;
+        const r = arena.getBoundingClientRect();
+        const y = e.clientY - r.top;
+        const playerPaddleH = player.clientHeight;
+        playerY = y - playerPaddleH / 2;
+        clampPlayer(playerPaddleH);
+      });
+    }
+
+    function clampPlayer(playerPaddleH) {
+      playerY = Math.max(0, Math.min(arenaH - playerPaddleH, playerY));
+    }
+
+    // Game loop utama
+    // Predict where the ball will be when it reaches a given X (simple discrete simulation)
+    function predictBallYAtX(targetX) {
+      try {
+        let simX = ballX;
+        let simY = ballY;
+        // use current speeds (without per-frame multiplier to approximate path)
+        let vx = ballSpeedX * ballSpeedMultiplier;
+        let vy = ballSpeedY * ballSpeedMultiplier;
+        const maxIter = 20000;
+        let iter = 0;
+        // If vx is 0, ball won't reach target; return current Y center
+        if (Math.abs(vx) < 0.0001) return simY + ballSize / 2;
+        // simulate until we cross targetX or iteration limit
+        while (((vx > 0) && (simX < targetX)) || ((vx < 0) && (simX > targetX))) {
+          simX += vx;
+          simY += vy;
+          // bounce top/bottom
+          if (simY <= 0) {
+            simY = -simY;
+            vy = -vy;
+          } else if (simY + ballSize >= arenaH) {
+            simY = 2 * (arenaH - ballSize) - simY;
+            vy = -vy;
+          }
+          iter++; if (iter > maxIter) break;
+        }
+        return simY + ballSize / 2; // return center Y where ball arrives
+      } catch (e) { return ballY + ballSize / 2; }
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      const playerPaddleH = player.clientHeight;
+      const aiPaddleH = ai.clientHeight;
+      ballSize = ball.clientWidth;
+      arenaH = arena.clientHeight;
+      arenaW = arena.clientWidth;
+
+      updatePlayerControl(playerPaddleH);
+      // if multiplayer local, allow right paddle to be controlled by player 2
+        if (!aiControlled) {
+        // arrow keys control right paddle
+        const up2 = !!keyState['arrowup'];
+        const down2 = !!keyState['arrowdown'];
+        const rightSpeed = 6 * (rightMovementMultiplier || 1);
+        if (invertAI) {
+          if (up2) aiY += rightSpeed;
+          if (down2) aiY -= rightSpeed;
+        } else {
+          if (up2) aiY -= rightSpeed;
+          if (down2) aiY += rightSpeed;
+        }
+        // clamp
+        aiY = Math.max(0, Math.min(arenaH - aiPaddleH, aiY));
+      }
+
+      ballSpeedMultiplier += 0.002;
+
+      ballX += ballSpeedX * ballSpeedMultiplier;
+      ballY += ballSpeedY * ballSpeedMultiplier;
+
+      if (ballX + ballSize < 0) {
+        // AI scored; check for double-point effect on AI
+        const doubleForAI = activeEffects.some(a => a.type === 'double-point' && a.target === 'ai');
+        aiScore += doubleForAI ? 2 : 1;
+        postScore("ai", doubleForAI ? 'double' : null);
+        if (aiScore >= maxPoint) return endGame("AI mencapai skor maksimal!");
+      }
+      if (ballX > arenaW) {
+        // Player scored; check for double-point effect on Player
+        const doubleForPlayer = activeEffects.some(a => a.type === 'double-point' && a.target === 'player');
+        playerScore += doubleForPlayer ? 2 : 1;
+        postScore("player", doubleForPlayer ? 'double' : null);
+        if (playerScore >= maxPoint) return endGame("Player mencapai skor maksimal!");
+      }
+
+      if (ballY <= 0) {
+        ballY = 0;
+        ballSpeedY *= -1;
+      } else if (ballY + ballSize >= arenaH) {
+        ballY = arenaH - ballSize;
+        ballSpeedY *= -1;
+      }
+
+      // Smooth AI controller
+      let aiCenter = aiY + aiPaddleH / 2;
+      const aiLeftPos = arenaW - ai.clientWidth;
+      let targetCenterY;
+
+      // Determine target center depending on ball movement and difficulty
+      if (currentDifficulty === 'hard') {
+        if (ballSpeedX > 0) {
+          // Predict where ball will meet AI x and add a small lead based on ball vertical speed
+          const predicted = predictBallYAtX(aiLeftPos);
+          // Slight bias toward center to handle bounce returns
+          targetCenterY = Math.max(0, Math.min(arenaH, predicted + (ballSpeedY * 0.5)));
+        } else {
+          // ball moving away: position near center but slightly anticipate return
+          targetCenterY = arenaH / 2;
+        }
+      } else {
+        // easy/medium: track the ball center more directly
+        targetCenterY = ballY + ballSize / 2;
+      }
+
+      // Movement tuning
+      const speedMultiplier = (currentDifficulty === 'hard') ? 1.6 : (currentDifficulty === 'medium' ? 1.15 : 0.9);
+      const maxSpeed = Math.max(1, Math.round(currentAiSpeed * speedMultiplier));
+      const maxAccel = Math.max(0.5, maxSpeed * 0.35);
+      const damping = (currentDifficulty === 'hard') ? 0.88 : 0.78; // harder AI keeps momentum a bit more
+
+      // imperfection window (smaller on harder difficulties)
+      const imperf = (currentDifficulty === 'hard') ? 1.5 : (currentDifficulty === 'medium' ? 4 : Math.max(6, Math.round(aiPaddleH * 0.08)));
+
+      if (aiControlled && !rightTouchActive) {
+        // Compute desired position (top) so the paddle center matches targetCenterY
+        const desiredTop = targetCenterY - aiPaddleH / 2;
+        // Difference between desired and current
+        const diff = desiredTop - aiY;
+
+        // If very close, snap gently to avoid micro-oscillation
+        if (Math.abs(diff) < 1.2) {
+          aiVelocity *= 0.6;
+          aiY = aiY + aiVelocity; // allow residual smoothing
+          // small snap to exact if velocity low
+          if (Math.abs(aiVelocity) < 0.4) aiY = desiredTop;
+        } else {
+          // acceleration proportional to error, capped
+          const accel = Math.max(-maxAccel, Math.min(maxAccel, diff * 0.18));
+          aiVelocity += accel;
+          // cap velocity
+          aiVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, aiVelocity));
+          // apply damping
+          aiVelocity *= damping;
+          // apply velocity scaled by movement multipliers (time-dilate effects)
+          aiY += aiVelocity * (rightMovementMultiplier || 1);
+        }
+      }
+
+      // clamp to arena
+      aiY = Math.max(0, Math.min(arenaH - aiPaddleH, aiY));
+
+      const now = Date.now();
+      if (
+        ballSpeedX < 0 &&
+        (now - lastBounceTime > bounceCooldown) &&
+        ballX <= player.clientWidth &&
+        ballY + ballSize >= playerY &&
+        ballY <= playerY + playerPaddleH
+      ) {
+        const speedMag = Math.max(1.2, Math.abs(ballSpeedX));
+        ballSpeedX = Math.abs(speedMag);
+        ballX = player.clientWidth + 1;
+
+        const hitPos = (ballY + ballSize / 2) - (playerY + playerPaddleH / 2);
+        ballSpeedY += hitPos * 0.03;
+        ballSpeedY = Math.max(-8, Math.min(8, ballSpeedY));
+
+        lastBounceTime = now;
+        lastPaddleTouched = 'player';
+  try { playHit(); } catch (e) {}
+      }
+
+      const aiLeft = arenaW - ai.clientWidth;
+      if (
+        ballSpeedX > 0 &&
+        (now - lastBounceTime > bounceCooldown) &&
+        ballX + ballSize >= aiLeft &&
+        ballX <= aiLeft + ai.clientWidth &&
+        ballY + ballSize >= aiY &&
+        ballY <= aiY + aiPaddleH
+      ) {
+        const speedMag = Math.max(1.2, Math.abs(ballSpeedX));
+        ballSpeedX = -Math.abs(speedMag);
+        ballX = aiLeft - ballSize - 1;
+
+        const hitPosAI = (ballY + ballSize / 2) - (aiY + aiPaddleH / 2);
+        ballSpeedY += hitPosAI * 0.03;
+        ballSpeedY = Math.max(-8, Math.min(8, ballSpeedY));
+
+        lastBounceTime = now;
+        lastPaddleTouched = 'ai';
+  try { playHit(); } catch (e) {}
+      }
+
+      player.style.top = playerY + "px";
+      ai.style.top     = aiY + "px";
+      ball.style.left  = ballX + "px";
+      ball.style.top   = ballY + "px";
+      playerScoreEl.textContent = playerScore;
+      aiScoreEl.textContent     = aiScore;
+
+      for (let i = activeEmotes.length - 1; i >= 0; i--) {
+        const em = activeEmotes[i];
+        if (!em || !em.el) continue;
+        if (
+          ballX + ballSize > em.x &&
+          ballX < em.x + em.size &&
+          ballY + ballSize > em.y &&
+          ballY < em.y + em.size
+        ) {
+          try { em.el.remove(); } catch (e) {}
+          activeEmotes.splice(i, 1);
+          applyEmoteEffect(em, lastPaddleTouched);
+          try { playPower(); } catch (e) {}
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Fungsi untuk menghandle skor
+    function postScore(by, mode) {
+  try { playPoint(); } catch (e) {}
+      ballX = arenaW / 2;
+      ballY = arenaH / 2;
+      ballSpeedMultiplier = 1;
+      ballBaseSpeed = 2;
+      ballSpeedX = ballBaseSpeed * (Math.random() < 0.5 ? -1 : 1);
+      ballSpeedY = ballBaseSpeed * (Math.random() < 0.5 ? -1 : 1);
+
+      activeEmotes.forEach(e => { try { e.el.remove(); } catch (_) {} });
+      activeEmotes = [];
+
+      lastPaddleTouched = null;
+      invertAI = false;
+      invertControls = false;
+
+      activeEffects.forEach(a => clearTimeout(a.id));
+      // restore any shrink or movement multipliers
+      try {
+        // restore paddles
+        const pEl = document.querySelector('.player');
+        const aEl = document.querySelector('.ai');
+        if (pEl && pEl.dataset.origHeight) { pEl.style.height = pEl.dataset.origHeight + 'px'; delete pEl.dataset.origHeight; delete pEl.dataset.shrunk; }
+        if (aEl && aEl.dataset.origHeight) { aEl.style.height = aEl.dataset.origHeight + 'px'; delete aEl.dataset.origHeight; delete aEl.dataset.shrunk; }
+      } catch(e) {}
+      activeEffects = [];
+      playerMovementMultiplier = 1;
+      rightMovementMultiplier = 1;
+
+      arena.classList.remove("player-score", "ai-score");
+      arena.classList.add(by === "player" ? "player-score" : "ai-score");
+      setTimeout(() => arena.classList.remove("player-score", "ai-score"), 1200);
+
+      // if double-point mode, show a quick visual near the score
+      try {
+        if (mode === 'double') {
+          const s = document.createElement('div');
+          s.className = 'double-point-pop';
+          s.textContent = '💥💥';
+          s.style.position = 'absolute';
+          s.style.zIndex = 90;
+          if (by === 'player') {
+            s.style.left = (arena.getBoundingClientRect().left + 24) + 'px';
+            s.style.top = (arena.getBoundingClientRect().top + 12) + 'px';
+          } else {
+            s.style.left = (arena.getBoundingClientRect().right - 56) + 'px';
+            s.style.top = (arena.getBoundingClientRect().top + 12) + 'px';
+          }
+          document.body.appendChild(s);
+          setTimeout(() => { try { s.remove(); } catch (e) {} }, 900);
+        }
+      } catch (e) {}
+
+      lastBounceTime = Date.now();
+  // Reset multiplayer UI for next serve
+  try { const mh = document.getElementById('multiplayer-hint'); if (mh) mh.style.display = 'none'; } catch(e){}
+  try { document.querySelector('.ai')?.classList.remove('multiplayer'); } catch(e){}
+    }
+    
+    // Fungsi untuk efek konfeti
+    function createConfetti() {
+      const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f'];
+      const confettiCount = 100;
+      
+      for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+        document.body.appendChild(confetti);
+        
+        // Animasi konfeti
+        const animation = confetti.animate([
+          { top: '-10px', opacity: 1, transform: 'scale(0.5)' },
+          { top: '100vh', opacity: 0, transform: 'scale(1.2)' }
+        ], {
+          duration: 2000 + Math.random() * 3000,
+          easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)'
+        });
+        
+        // Hapus elemen setelah animasi selesai
+        animation.onfinish = () => confetti.remove();
+      }
+    }
+
+    // Fungsi untuk mengakhiri game
+    async function endGame(reason) {
+      gameRunning = false;
+      // hide multiplayer hint when game ends
+      try { const mh = document.getElementById('multiplayer-hint'); if (mh) mh.style.display = 'none'; } catch(e){}
+  try { document.querySelector('.ai')?.classList.remove('multiplayer'); } catch(e){}
+      clearInterval(timerInterval);
+      
+  // stop ingame music
+  try { if (audioIngame) { audioIngame.pause(); audioIngame.currentTime = 0; } } catch (e) {}
+
+  const winner = playerScore > aiScore ? 'Player' : aiScore > playerScore ? 'AI' : 'Draw';
+      
+      // Tampilkan efek konfeti jika pemain menang
+      if (playerScore > aiScore) {
+        createConfetti();
+  try { playWin(); } catch (e) {}
+      }
+      
+      // Simpan skor ke database jika bukan Guest dan bukan local multiplayer
+  if (playerName !== "Guest") {
+        try {
+          if (currentDifficulty === 'local' || aiControlled === false) {
+            // Local multiplayer - do not save to leaderboard
+            neonDB.showStatus('Local multiplayer — skor tidak disimpan ke leaderboard');
+          } else {
+            const saveResult = await neonDB.saveScore(
+              playerName,
+              playerScore,
+              aiScore,
+              currentDifficulty,
+              winner,
+              playerId
+            );
+            
+            if (saveResult && saveResult.success) {
+              neonDB.showStatus("Skor berhasil disimpan di database!");
+            } else {
+              neonDB.showStatus((saveResult && saveResult.message) || "Gagal menyimpan skor ke database", true);
+            }
+          }
+        } catch (error) {
+          console.error("Error saving score:", error);
+          neonDB.showStatus("Error saving score: " + error.message, true);
+        }
+      }
+      
+      setTimeout(() => {
+        alert(`${reason}\nSkor: Player ${playerScore} - ${aiScore} AI\n` +
+              `${playerScore > aiScore ? "🎉 Player Menang!" :
+                aiScore > playerScore ? "🤖 AI Menang!" : "⚖️ Seri!"}`);
+                
+        // Tampilkan leaderboard setelah game selesai
+        showLeaderboard();
+      }, 120);
+      // play lose if player lost and not draw
+      if (playerScore < aiScore) {
+        try { playLose(); } catch (e) {}
+      }
+    }
+    
+    // --- Neon ball runtime effects (applies inline styles if style.css not used) ---
+    (function(){
+      const ballEl = document.getElementById('ball');
+      if (!ballEl) return;
+
+      // Ensure class present
+      if (!ballEl.classList.contains('neon-ball')) ballEl.classList.add('neon-ball');
+
+      // Fallback inline styles (in case external CSS isn't being applied)
+      const ensureInline = () => {
+        // if computed style doesn't show hue-rotate animation, apply inline fallback
+        try {
+          const cs = window.getComputedStyle(ballEl);
+          if (!cs || (!cs.animationName || cs.animationName === 'none')) {
+            ballEl.style.background = 'radial-gradient(circle at 30% 30%, #ffffff 0%, #ff00ff 18%, #00ffff 60%)';
+            ballEl.style.boxShadow = '0 0 8px #ff00ff, 0 0 20px #00ffff, 0 0 30px rgba(0,255,255,0.12)';
+            // add inline animation via CSS text (use setProperty for prefixes)
+            ballEl.style.animation = 'neon-hue-inline 3.6s linear infinite, neon-float-inline 2.8s ease-in-out infinite';
+          }
+        } catch(e){}
+      };
+      ensureInline();
+      // also try again after load/paint
+      window.requestAnimationFrame(()=> setTimeout(ensureInline, 40));
+
+      // subtle radial pulse on bounce
+      function pulse(strength = 1) {
+        const prevTrans = ballEl.style.transition || '';
+        const prevTransform = ballEl.style.transform || '';
+        const prevBox = ballEl.style.boxShadow || '';
+        ballEl.style.transition = 'transform 120ms ease-out, box-shadow 120ms ease-out';
+        ballEl.style.transform = prevTransform + ' scale(' + (1 + 0.06 * strength) + ')';
+        ballEl.style.boxShadow = '0 0 ' + (12 * strength) + 'px rgba(255,255,255,0.9), 0 0 ' + (30 * strength) + 'px rgba(0,255,255,0.2)';
+        setTimeout(() => {
+          ballEl.style.transform = prevTransform;
+          ballEl.style.boxShadow = prevBox;
+          ballEl.style.transition = prevTrans;
+        }, 140);
+      }
+
+      // Monkey-patch safe wrappers
+      try {
+        const origPlayHit = window.playHit;
+        window.playHit = function(){ try { origPlayHit && origPlayHit.apply(this, arguments); } catch(e){}; try { pulse(1); } catch(e){} };
+      } catch(e){}
+
+      try {
+        const origPlayPower = window.playPower;
+        window.playPower = function(){ try { origPlayPower && origPlayPower.apply(this, arguments); } catch(e){}; try { pulse(1.6); } catch(e){} };
+      } catch(e){}
+
+      // gentle color flash when scoring
+      try {
+        const origPostScore = window.postScore;
+        window.postScore = function(by){ try { origPostScore && origPostScore.apply(this, arguments); } catch(e){}; try {
+            ballEl.style.transition = 'filter 220ms ease, box-shadow 220ms ease';
+            if (by === 'player') ballEl.style.filter = 'hue-rotate(-40deg) saturate(1.3)';
+            else ballEl.style.filter = 'hue-rotate(40deg) saturate(1.15)';
+            setTimeout(()=>{ ballEl.style.filter = ''; }, 320);
+          } catch(e){} };
+      } catch(e){}
+    })();
+    // ensure neon timer fallback for browsers without background-clip:text
+    (function(){
+      try {
+        const t = document.getElementById('timer');
+        if (!t) return;
+        const cs = window.getComputedStyle(t);
+        // detect if background-clip:text is effective by checking color transparency
+        if (cs && cs.color && cs.color.indexOf('rgba') === -1) {
+          // quick fallback: apply a multi-layered text shadow and solid accent color
+          t.style.color = '#fff';
+          t.style.textShadow = '0 0 10px rgba(255,0,200,0.9), 0 0 24px rgba(0,200,255,0.5), 0 0 40px rgba(255,255,0,0.18)';
+        }
+      } catch(e){}
+    })();
+    // Robust overlay touch handlers (defensive: ensure these run even if other handlers fail)
+    (function(){
+      try {
+        const leftZone = document.querySelector('.touch-left');
+        const rightZone = document.querySelector('.touch-right');
+        function toLocalY(t) {
+          if (!arena) return 0;
+          const r = arena.getBoundingClientRect();
+          return Math.max(0, Math.min(r.height, t.clientY - r.top));
+        }
+        if (leftZone) {
+          leftZone.style.touchAction = 'none';
+          leftZone.addEventListener('touchstart', (e) => {
+            if (!gameRunning) return;
+            e.preventDefault();
+            const y = toLocalY(e.touches[0]);
+            playerY = y - player.clientHeight / 2;
+            clampPlayer(player.clientHeight);
+          }, { passive: false });
+          leftZone.addEventListener('touchmove', (e) => {
+            if (!gameRunning) return;
+            e.preventDefault();
+            const y = toLocalY(e.touches[0]);
+            playerY = y - player.clientHeight / 2;
+            clampPlayer(player.clientHeight);
+          }, { passive: false });
+        }
+        if (rightZone) {
+          rightZone.style.touchAction = 'none';
+          // Pointer-based drag for right paddle (smoother, matches left paddle behavior)
+          // Fallback to mouse/touch if PointerEvent not available.
+          if (window.PointerEvent) {
+            let rightPointerActive = false;
+            rightZone.addEventListener('pointerdown', (e) => {
+              if (!gameRunning) return;
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              // Only enable when multiplayer requested (aiControlled === false) or during local mode
+              if (typeof aiControlled !== 'undefined' && aiControlled) return;
+              e.preventDefault && e.preventDefault();
+              try { if (typeof window._prevAiControlled === 'undefined') window._prevAiControlled = aiControlled; } catch(e){}
+              aiControlled = false;
+              rightPointerActive = true;
+              try { e.target && e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); } catch(e){}
+              const r = arena.getBoundingClientRect();
+              const y = e.clientY - r.top;
+              aiY = y - ai.clientHeight / 2;
+              aiY = Math.max(0, Math.min(arena.clientHeight - ai.clientHeight, aiY));
+            });
+            rightZone.addEventListener('pointermove', (e) => {
+              if (!gameRunning) return;
+              if (!rightPointerActive) return;
+              const r = arena.getBoundingClientRect();
+              // ignore if pointer moved to left half to avoid accidental left-paddle moves
+              if (e.clientX < r.left + r.width / 2) return;
+              const y = e.clientY - r.top;
+              aiY = y - ai.clientHeight / 2;
+              aiY = Math.max(0, Math.min(arena.clientHeight - ai.clientHeight, aiY));
+            });
+            rightZone.addEventListener('pointerup', (e) => {
+              rightPointerActive = false;
+              try { e.target && e.target.releasePointerCapture && e.target.releasePointerCapture(e.pointerId); } catch(e){}
+              if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+            });
+            rightZone.addEventListener('pointercancel', (e) => {
+              rightPointerActive = false;
+              if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+            });
+          } else {
+            // fallback for older browsers: mouse + touch handlers
+            let rightMouseDown = false;
+            rightZone.addEventListener('mousedown', (e) => {
+              if (!gameRunning) return;
+              if (typeof aiControlled !== 'undefined' && aiControlled) return;
+              rightMouseDown = true;
+              try { if (typeof window._prevAiControlled === 'undefined') window._prevAiControlled = aiControlled; } catch(e){}
+              try { aiControlled = false; } catch(e){}
+              const r = arena.getBoundingClientRect();
+              const y = e.clientY - r.top;
+              aiY = y - ai.clientHeight / 2;
+              aiY = Math.max(0, Math.min((arena ? arena.clientHeight : 0) - ai.clientHeight, aiY));
+            });
+            window.addEventListener('mousemove', (e) => {
+              if (!gameRunning) return;
+              if (!rightMouseDown) return;
+              const r = arena.getBoundingClientRect();
+              if (e.clientX < r.left + r.width / 2) return;
+              const y = e.clientY - r.top;
+              aiY = y - ai.clientHeight / 2;
+              aiY = Math.max(0, Math.min((arena ? arena.clientHeight : 0) - ai.clientHeight, aiY));
+            });
+            window.addEventListener('mouseup', (e) => {
+              if (!rightMouseDown) return;
+              rightMouseDown = false;
+              if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+            });
+
+            rightZone.addEventListener('touchstart', (e) => {
+              if (!gameRunning) return;
+              e.preventDefault && e.preventDefault();
+              e.stopPropagation && e.stopPropagation();
+              if (typeof window._prevAiControlled === 'undefined') window._prevAiControlled = aiControlled;
+              aiControlled = false;
+              const y = toLocalY(e.touches[0]);
+              aiY = y - ai.clientHeight / 2;
+              aiY = Math.max(0, Math.min((arena ? arena.clientHeight : 0) - ai.clientHeight, aiY));
+              rightTouchActive = true;
+            }, { passive: false });
+            rightZone.addEventListener('touchmove', (e) => {
+              if (!gameRunning) return;
+              e.preventDefault && e.preventDefault();
+              e.stopPropagation && e.stopPropagation();
+              const y = toLocalY(e.touches[0]);
+              aiY = y - ai.clientHeight / 2;
+              aiY = Math.max(0, Math.min((arena ? arena.clientHeight : 0) - ai.clientHeight, aiY));
+              rightTouchActive = true;
+            }, { passive: false });
+            rightZone.addEventListener('touchend', (e) => {
+              rightTouchActive = false;
+              e.stopPropagation && e.stopPropagation();
+              if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+            }, { passive: true });
+            rightZone.addEventListener('touchcancel', (e) => {
+              rightTouchActive = false;
+              e.stopPropagation && e.stopPropagation();
+              if (typeof window._prevAiControlled !== 'undefined') { aiControlled = window._prevAiControlled; delete window._prevAiControlled; }
+            }, { passive: true });
+          }
+        }
+      } catch (e) { console.debug && console.debug('robust overlay touch handlers failed', e); }
+    })();
+  </script>
+  <script>
+    // Inline dropdown toggles specific to this HTML (ensures hover is ignored)
+    (function(){
+      function toggleParentDropdown(btn) {
+        const drop = btn && btn.closest('.dropdown');
+        if (!drop) return;
+        const open = drop.classList.contains('open');
+        if (open) { drop.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+        else { drop.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+      }
+
+      const singleBtn = document.getElementById('single-btn');
+      const multiBtn = document.getElementById('multi-btn');
+
+      [singleBtn, multiBtn].forEach(b => {
+        if (!b) return;
+        b.setAttribute('aria-haspopup','true');
+        b.setAttribute('aria-expanded','false');
+        // use pointerdown for responsiveness and click as fallback
+        let recentPointer = false;
+        b.addEventListener('pointerdown', (ev)=>{ recentPointer = true; setTimeout(()=> recentPointer=false,250); ev.preventDefault && ev.preventDefault(); toggleParentDropdown(b); ev.stopPropagation && ev.stopPropagation(); });
+        b.addEventListener('touchstart', (ev)=>{ recentPointer = true; setTimeout(()=> recentPointer=false,250); ev.preventDefault && ev.preventDefault(); toggleParentDropdown(b); ev.stopPropagation && ev.stopPropagation(); }, { passive: true });
+        b.addEventListener('click', (ev)=>{ if (recentPointer) return; ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation(); toggleParentDropdown(b); });
+      });
+
+      // close when tapping outside
+      document.addEventListener('click', (e)=>{
+        document.querySelectorAll('.dropdown.open').forEach(d=>{
+          if (!d.contains(e.target)) { d.classList.remove('open'); const btn = d.querySelector('button'); if (btn) btn.setAttribute('aria-expanded','false'); }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
